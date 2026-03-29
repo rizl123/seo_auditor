@@ -1,14 +1,52 @@
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: ./Dockerfile.prod
+    profiles:
+      - prod
+      - front_dev
+    environment:
+      - GIN_MODE=release
+
+  backend_dev:
+    build:
+      context: ./backend
+      dockerfile: ./Dockerfile.dev
+    profiles:
+      - back_dev
+    environment:
+      - GIN_MODE=debug
+    volumes:
+      - ./backend:/app
+    networks:
+      default:
+        aliases:
+          - backend
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: ./Dockerfile.prod
+    profiles:
+      - prod
+      - back_dev
+
+  frontend_dev:
+    build:
+      context: ./frontend
+      dockerfile: ./Dockerfile.dev
+    profiles:
+      - front_dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      default:
+        aliases:
+          - frontend
 
   nginx:
     build: ./nginx
     ports:
       - "80:80"
-    depends_on:
-      - backend
-      - frontend
