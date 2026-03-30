@@ -4,14 +4,21 @@ import (
 	"backend/internal/delivery/http"
 	"backend/internal/infrastructure"
 	"backend/internal/usecase"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	repo := &infrastructure.HttpSeoRepository{}
-	seoUsecase := usecase.NewSeoUsecase(repo)
+	repo := infrastructure.NewHttpSeoRepository()
+
+	redisAddr := os.Getenv("REDIS_ADDR")
+	cache := infrastructure.NewRedisSeoCache(redisAddr, 24*time.Hour)
+
+	seoUsecase := usecase.NewSeoUsecase(repo, cache)
 	handler := http.NewSeoHandler(seoUsecase)
+
 	r := gin.Default()
 	r.RedirectTrailingSlash = true
 

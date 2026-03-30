@@ -10,13 +10,15 @@ RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 COPY . .
 
-RUN swag init && \
-    CGO_ENABLED=0 GOOS=linux go build -o backend main.go && \
+RUN swag init -g internal/cmd/main.go && \
+    CGO_ENABLED=0 GOOS=linux go build -o backend internal/cmd/main.go && \
     chmod +x healthcheck.sh
 
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates lsof
 WORKDIR /app
+
+ENV GIN_MODE=release
 
 COPY --from=builder /app/backend .
 COPY --from=builder /app/docs ./docs

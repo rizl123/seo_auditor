@@ -2,7 +2,7 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  cmd = "swag init && go build -o ./tmp/main main.go"
+  cmd = "./refresh.sh"
   full_bin = "./tmp/main"
   include_ext = ["go", "tpl", "tmpl", "html"]
   exclude_dir = ["assets", "tmp", "vendor", "docs"]

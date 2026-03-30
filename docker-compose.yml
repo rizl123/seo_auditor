@@ -1,33 +1,27 @@
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: ./Dockerfile.prod
+    build: ./backend
+    env_file: .env.backend
     profiles:
       - prod
       - front_dev
-    environment:
-      - GIN_MODE=release
 
   backend_dev:
     build:
       context: ./backend
       dockerfile: ./Dockerfile.dev
+    env_file: .env.backend
     profiles:
       - back_dev
-    environment:
-      - GIN_MODE=debug
     volumes:
-      - ./backend:/app
+      - ./backend/internal:/app/internal:ro
     networks:
       default:
         aliases:
           - backend
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: ./Dockerfile.prod
+    build: ./frontend
     profiles:
       - prod
       - back_dev
@@ -39,7 +33,7 @@ services:
     profiles:
       - front_dev
     volumes:
-      - ./frontend:/app
+      - ./frontend/src:/app/src:ro
       - /app/node_modules
     networks:
       default:
@@ -50,3 +44,6 @@ services:
     build: ./nginx
     ports:
       - "80:80"
+
+  redis:
+    image: redis:7-alpine
