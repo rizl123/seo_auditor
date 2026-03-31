@@ -7,33 +7,33 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type SeoHandler struct {
-	usecase *usecase.SeoUsecase
+type ScanHandler struct {
+	usecase *usecase.ScanUsecase
 }
 
-func NewSeoHandler(u *usecase.SeoUsecase) *SeoHandler {
-	return &SeoHandler{usecase: u}
+func NewScanHandler(u *usecase.ScanUsecase) *ScanHandler {
+	return &ScanHandler{usecase: u}
 }
 
-// Analyze godoc
+// HandleScan godoc
 //
-//	@Summary	Analyze SEO data
-//	@Tags		seo
-//	@Param		url	query		string	true	"URL"
-//	@Success	200	{object}	domain.SeoData
-//	@Router		/api/analyze [get]
-func (h *SeoHandler) Analyze(c *gin.Context) {
+//	@Summary    Scan page and get report
+//	@Tags       scanner
+//	@Param      url   query     string   true   "URL to scan"
+//	@Success    200   {object}  domain.PageReport
+//	@Router     /api/scan [get]
+func (h *ScanHandler) HandleScan(c *gin.Context) {
 	urlStr := c.Query("url")
 	if urlStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "url is required"})
 		return
 	}
 
-	data, err := h.usecase.Analyze(urlStr)
+	report, err := h.usecase.Execute(urlStr)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, data)
+	c.JSON(http.StatusOK, report)
 }

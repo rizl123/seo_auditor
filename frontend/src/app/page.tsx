@@ -2,12 +2,12 @@
 
 import { AlertCircle } from "lucide-react";
 import { useState } from "react";
+import { Report } from "@/components/report/Report";
 import { SearchForm } from "@/components/SearchForm";
-import { SeoResults } from "@/components/SeoResults";
-import type { SeoData } from "@/types/seo";
+import type { PageReport } from "@/types/report";
 
 export default function Home() {
-  const [result, setResult] = useState<SeoData | null>(null);
+  const [result, setResult] = useState<PageReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -17,31 +17,22 @@ export default function Home() {
     setResult(null);
 
     try {
-      const res = await fetch(`/api/analyze?url=${encodeURIComponent(url)}`);
+      const res = await fetch(`/api/scan?url=${encodeURIComponent(url)}`);
       if (!res.ok) {
-        throw new Error("Failed to analyze URL");
+        throw new Error("Failed to scan URL");
       }
       const data = await res.json();
       setResult(data);
     } catch (_err) {
-      setError("Error connecting to the analysis server.");
+      setError("Error connecting to the scanner server.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 transition-colors">
-      <main className="max-w-4xl mx-auto pt-20 px-6">
-        <header className="mb-12 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white mb-4">
-            SEO Analyzer
-          </h1>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Enter a URL to audit its on-page SEO elements.
-          </p>
-        </header>
-
+    <div className="min-h-screen bg-background transition-colors">
+      <main className="max-w-5xl mx-auto px-6 pb-20">
         <SearchForm onAnalyze={handleAnalyze} loading={loading} />
 
         {error && (
@@ -50,7 +41,7 @@ export default function Home() {
           </div>
         )}
 
-        {result && <SeoResults data={result} />}
+        {result && <Report data={result} />}
       </main>
     </div>
   );

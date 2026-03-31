@@ -9,7 +9,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func SetupRouter(r *gin.Engine, handler *SeoHandler) {
+func SetupRouter(r *gin.Engine, handler *ScanHandler) {
 	api := r.Group("/api")
 	{
 		api.GET("/swagger/*any", func(c *gin.Context) {
@@ -20,6 +20,6 @@ func SetupRouter(r *gin.Engine, handler *SeoHandler) {
 			ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
 		})
 
-		api.GET("/analyze", handler.Analyze)
+		api.GET("/scan", handler.HandleScan)
 	}
 }

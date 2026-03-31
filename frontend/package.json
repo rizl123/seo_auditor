@@ -6,8 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write"
+    "lint:check": "biome check",
+    "lint:write": "biome check --write",
+    "format:check": "biome format",
+    "format:write": "biome format --write"
   },
   "dependencies": {
     "lucide-react": "^1.7.0",

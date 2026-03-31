@@ -11,13 +11,13 @@ import (
 )
 
 func main() {
-	repo := infrastructure.NewHttpSeoRepository()
+	scanner := infrastructure.NewHttpScanner()
 
 	redisAddr := os.Getenv("REDIS_ADDR")
-	cache := infrastructure.NewRedisSeoCache(redisAddr, 24*time.Hour)
+	cache := infrastructure.NewRedisScannerCache(redisAddr, 24*time.Hour)
 
-	seoUsecase := usecase.NewSeoUsecase(repo, cache)
-	handler := http.NewSeoHandler(seoUsecase)
+	usecase := usecase.NewScanUsecase(scanner, cache)
+	handler := http.NewScanHandler(usecase)
 
 	r := gin.Default()
 	r.RedirectTrailingSlash = true

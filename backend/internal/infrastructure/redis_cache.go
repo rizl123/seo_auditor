@@ -4,40 +4,46 @@ import (
 	"backend/internal/domain"
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
-type RedisSeoCache struct {
+type RedisScannerCache struct {
 	client *redis.Client
 	ttl    time.Duration
 }
 
-func NewRedisSeoCache(addr string, ttl time.Duration) *RedisSeoCache {
-	return &RedisSeoCache{
+func NewRedisScannerCache(addr string, ttl time.Duration) *RedisScannerCache {
+	return &RedisScannerCache{
 		client: redis.NewClient(&redis.Options{Addr: addr}),
 		ttl:    ttl,
 	}
 }
 
-func (r *RedisSeoCache) Get(ctx context.Context, url string) (*domain.SeoData, error) {
-	val, err := r.client.Get(ctx, "seo:"+url).Result()
+func (r *RedisScannerCache) Fetch(ctx context.Context, url string) (*domain.PageReport, error) {
+	key := fmt.Sprintf("scan:%s", url)
+	val, err := r.client.Get(ctx, key).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	var data domain.SeoData
-	if err := json.Unmarshal([]byte(val), &data); err != nil {
-		return nil, err
+	var report domain.PageReport
+	if err := json.Unmarshal([]byte(val), &report); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal cached report: %w", err)
 	}
-	return &data, nil
+
+	return &report, nil
 }
 
-func (r *RedisSeoCache) Set(ctx context.Context, url string, data *domain.SeoData) error {
-	b, err := json.Marshal(data)
+func (r *RedisScannerCache) Store(ctx context.Context, url string, report *domain.PageReport) error {
+	key := fmt.Sprintf("scan:%s", url)
+
+	b, err := json.Marshal(report)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal report for caching: %w", err)
 	}
-	return r.client.Set(ctx, "seo:"+url, b, r.ttl).Err()
+
+	return r.client.Set(ctx, key, b, r.ttl).Err()
 }

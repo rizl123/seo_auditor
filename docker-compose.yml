@@ -1,49 +1,54 @@
 services:
+  nginx:
+    build: ./nginx
+    ports: ["80:80"]
+    depends_on:
+      backend:
+        condition: service_started
+        required: false
+      backend_dev:
+        condition: service_started
+        required: false
+      frontend:
+        condition: service_started
+        required: false
+      frontend_dev:
+        condition: service_started
+        required: false
+
   backend:
     build: ./backend
     env_file: .env.backend
-    profiles:
-      - prod
-      - front_dev
+    depends_on: [redis]
+    profiles: [prod, front_dev]
 
   backend_dev:
     build:
       context: ./backend
       dockerfile: ./Dockerfile.dev
     env_file: .env.backend
-    profiles:
-      - back_dev
-    volumes:
-      - ./backend/internal:/app/internal:ro
+    depends_on: [redis]
+    profiles: [back_dev]
+    volumes: ["./backend/internal:/app/internal:ro"]
     networks:
       default:
         aliases:
           - backend
 
+  redis:
+    image: redis:7-alpine
+
   frontend:
     build: ./frontend
-    profiles:
-      - prod
-      - back_dev
+    profiles: [prod, back_dev]
 
   frontend_dev:
     build:
       context: ./frontend
       dockerfile: ./Dockerfile.dev
-    profiles:
-      - front_dev
-    volumes:
-      - ./frontend/src:/app/src:ro
-      - /app/node_modules
+    profiles: [front_dev]
+    volumes: ["./frontend/src:/app/src:ro"]
     networks:
       default:
         aliases:
           - frontend
-
-  nginx:
-    build: ./nginx
-    ports:
-      - "80:80"
-
-  redis:
-    image: redis:7-alpine
