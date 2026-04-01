@@ -10,7 +10,8 @@ import (
 )
 
 func SetupRouter(api *gin.RouterGroup, cache domain.ReportRepo) {
-	scanner := infrastructure.NewWebScanner()
+	secureClient := infrastructure.CreateSecureClient()
+	scanner := infrastructure.NewWebScanner(secureClient)
 	usecase := usecase.NewScanUsecase(scanner, cache)
 	handler := NewScanHandler(usecase)
 

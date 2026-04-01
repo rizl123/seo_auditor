@@ -18,8 +18,8 @@ type WebScanner struct {
 	client *http.Client
 }
 
-func NewWebScanner() *WebScanner {
-	return &WebScanner{client: createSafeClient()}
+func NewWebScanner(client *http.Client) *WebScanner {
+	return &WebScanner{client: client}
 }
 
 func (s *WebScanner) Scan(urlStr string) (*domain.PageReport, error) {
@@ -74,7 +74,7 @@ func (s *WebScanner) Scan(urlStr string) (*domain.PageReport, error) {
 	return report, nil
 }
 
-func createSafeClient() *http.Client {
+func CreateSecureClient() *http.Client {
 	return &http.Client{
 		Timeout: 15 * time.Second,
 		Transport: &http.Transport{

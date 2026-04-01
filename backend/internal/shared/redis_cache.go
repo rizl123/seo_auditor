@@ -8,19 +8,19 @@ import (
 )
 
 type RedisClient struct {
-	client *redis.Client
+	Client *redis.Client
 }
 
 func NewRedisClient(addr string) *RedisClient {
 	return &RedisClient{
-		client: redis.NewClient(&redis.Options{Addr: addr}),
+		Client: redis.NewClient(&redis.Options{Addr: addr}),
 	}
 }
 
 func (r *RedisClient) Fetch(ctx context.Context, key string) (string, error) {
-	return r.client.Get(ctx, key).Result()
+	return r.Client.Get(ctx, key).Result()
 }
 
 func (r *RedisClient) Store(ctx context.Context, key string, b []byte, ttl time.Duration) error {
-	return r.client.Set(ctx, key, b, ttl).Err()
+	return r.Client.Set(ctx, key, b, ttl).Err()
 }
