@@ -12,7 +12,7 @@ import (
 
 type MockScanner struct{ mock.Mock }
 
-func (m *MockScanner) Scan(url string) (*domain.PageReport, error) {
+func (m *MockScanner) Scan(ctx context.Context, url string) (*domain.PageReport, error) {
 	args := m.Called(url)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -43,7 +43,7 @@ func TestScanUsecase_Execute(t *testing.T) {
 
 		mockRepo.On("Fetch", mock.Anything, "https://test.com").Return(expectedReport, nil)
 
-		result, err := uc.Execute("https://test.com")
+		result, err := uc.Execute(context.Background(), "https://test.com")
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedReport, result)
@@ -61,7 +61,7 @@ func TestScanUsecase_Execute(t *testing.T) {
 		mockScanner.On("Scan", "https://new.com").Return(report, nil)
 		mockRepo.On("Store", mock.Anything, "https://new.com", report).Return(nil)
 
-		result, err := uc.Execute("https://new.com")
+		result, err := uc.Execute(context.Background(), "https://new.com")
 
 		assert.NoError(t, err)
 		assert.Equal(t, report, result)

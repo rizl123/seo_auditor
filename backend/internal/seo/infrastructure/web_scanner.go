@@ -22,13 +22,13 @@ func NewWebScanner(client *http.Client) *WebScanner {
 	return &WebScanner{client: client}
 }
 
-func (s *WebScanner) Scan(urlStr string) (*domain.PageReport, error) {
+func (s *WebScanner) Scan(ctx context.Context, urlStr string) (*domain.PageReport, error) {
 	if !strings.HasPrefix(urlStr, "http") {
 		return nil, errors.New("invalid protocol")
 	}
 
 	start := time.Now()
-	req, _ := http.NewRequestWithContext(context.Background(), "GET", urlStr, nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
 	req.Header.Set("User-Agent", "SiteInspector/1.0 (Bot)")
 
 	res, err := s.client.Do(req)

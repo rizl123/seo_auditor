@@ -14,16 +14,14 @@ func NewScanUsecase(s domain.Scanner, c domain.ReportRepo) *ScanUsecase {
 	return &ScanUsecase{scanner: s, repo: c}
 }
 
-func (u *ScanUsecase) Execute(url string) (*domain.PageReport, error) {
-	ctx := context.Background()
-
+func (u *ScanUsecase) Execute(ctx context.Context, url string) (*domain.PageReport, error) {
 	if u.repo != nil {
 		if cached, err := u.repo.Fetch(ctx, url); err == nil {
 			return cached, nil
 		}
 	}
 
-	report, err := u.scanner.Scan(url)
+	report, err := u.scanner.Scan(ctx, url)
 	if err != nil {
 		return nil, err
 	}

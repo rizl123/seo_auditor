@@ -29,7 +29,7 @@ func (h *ScanHandler) HandleScan(c *gin.Context) {
 		return
 	}
 
-	report, err := h.usecase.Execute(urlStr)
+	report, err := h.usecase.Execute(c, urlStr)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return

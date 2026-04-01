@@ -3,7 +3,7 @@ package domain
 import "context"
 
 type Scanner interface {
-	Scan(urlStr string) (*PageReport, error)
+	Scan(ctx context.Context, urlStr string) (*PageReport, error)
 }
 
 type ReportRepo interface {
