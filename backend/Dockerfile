@@ -3,10 +3,10 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /app
 
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
 COPY go.mod go.sum ./
 RUN go mod download
-
-RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 COPY . .
 
