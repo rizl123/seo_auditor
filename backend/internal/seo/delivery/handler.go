@@ -1,7 +1,7 @@
-package http
+package delivery
 
 import (
-	"backend/internal/usecase"
+	"backend/internal/seo/usecase"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

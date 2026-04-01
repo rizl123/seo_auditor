@@ -1,7 +1,7 @@
 package infrastructure
 
 import (
-	"backend/internal/domain"
+	"backend/internal/seo/domain"
 	"context"
 	"errors"
 	"io"
@@ -14,15 +14,15 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-type HttpScanner struct {
+type WebScanner struct {
 	client *http.Client
 }
 
-func NewHttpScanner() *HttpScanner {
-	return &HttpScanner{client: createSafeClient()}
+func NewWebScanner() *WebScanner {
+	return &WebScanner{client: createSafeClient()}
 }
 
-func (s *HttpScanner) Scan(urlStr string) (*domain.PageReport, error) {
+func (s *WebScanner) Scan(urlStr string) (*domain.PageReport, error) {
 	if !strings.HasPrefix(urlStr, "http") {
 		return nil, errors.New("invalid protocol")
 	}

@@ -1,28 +1,43 @@
 package main
 
 import (
-	"backend/internal/delivery/http"
-	"backend/internal/infrastructure"
-	"backend/internal/usecase"
+	_ "backend/docs"
+	"net/http"
+
+	"backend/internal/seo/delivery"
+	"backend/internal/seo/infrastructure"
+	"backend/internal/shared"
+
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
-	scanner := infrastructure.NewHttpScanner()
-
 	redisAddr := os.Getenv("REDIS_ADDR")
-	cache := infrastructure.NewRedisScannerCache(redisAddr, 24*time.Hour)
-
-	usecase := usecase.NewScanUsecase(scanner, cache)
-	handler := http.NewScanHandler(usecase)
+	redis := shared.NewRedisClient(redisAddr)
 
 	r := gin.Default()
 	r.RedirectTrailingSlash = true
 
-	http.SetupRouter(r, handler)
+	SetupRouter(r, redis)
 
 	r.Run(":8080")
+}
+
+func SetupRouter(r *gin.Engine, redis *shared.RedisClient) {
+	api := r.Group("/api")
+	{
+		api.GET("/swagger/*any", func(c *gin.Context) {
+			if c.Param("any") == "/" || c.Param("any") == "" {
+				c.Redirect(http.StatusMovedPermanently, "/api/swagger/index.html")
+				return
+			}
+			ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
+		})
+
+		delivery.SetupRouter(api, infrastructure.NewRedisReportRepo(redis))
+	}
 }

@@ -23,7 +23,3 @@ type NetworkInfo struct {
 	Server         string `json:"server"`
 	ContentType    string `json:"content_type"`
 }
-
-type ScannerRepository interface {
-	Scan(urlStr string) (*PageReport, error)
-}
