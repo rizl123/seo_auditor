@@ -4,8 +4,9 @@ import (
 	_ "backend/docs"
 	"net/http"
 
-	"backend/internal/seo/delivery"
-	"backend/internal/seo/infrastructure"
+	seoDelivery "backend/internal/seo/delivery"
+	seoInfra "backend/internal/seo/infrastructure"
+	seoUc "backend/internal/seo/usecase"
 	"backend/internal/shared"
 
 	"os"
@@ -22,12 +23,21 @@ func main() {
 	r := gin.Default()
 	r.RedirectTrailingSlash = true
 
-	SetupRouter(r, redis)
+	seoHandle := seoDelivery.NewScanHandler(
+		seoUc.NewScanUsecase(
+			seoInfra.NewWebScanner(
+				seoInfra.CreateSecureClient(),
+			),
+			seoInfra.NewRedisReportRepo(redis),
+		),
+	)
+
+	SetupRouter(r, seoHandle)
 
 	r.Run(":8080")
 }
 
-func SetupRouter(r *gin.Engine, redis *shared.RedisClient) {
+func SetupRouter(r *gin.Engine, handler *seoDelivery.ScanHandler) {
 	api := r.Group("/api")
 	{
 		api.GET("/swagger/*any", func(c *gin.Context) {
@@ -38,6 +48,6 @@ func SetupRouter(r *gin.Engine, redis *shared.RedisClient) {
 			ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
 		})
 
-		delivery.SetupRouter(api, infrastructure.NewRedisReportRepo(redis))
+		seoDelivery.SetupRouter(api, handler)
 	}
 }
