@@ -3,6 +3,9 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /app
 
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+
 RUN --mount=type=cache,target=/go/pkg/mod \
     go install github.com/swaggo/swag/cmd/swag@latest
 
@@ -15,8 +18,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     swag init -g internal/cmd/main.go && \
-    CGO_ENABLED=0 GOOS=linux go build -o backend internal/cmd/main.go && \
-    chmod +x healthcheck.sh
+    go build -o backend internal/cmd/main.go
 
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates lsof
@@ -29,5 +31,4 @@ COPY --from=builder /app/docs ./docs
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD [ "./healthcheck.sh" ]
 CMD ["./backend"]
