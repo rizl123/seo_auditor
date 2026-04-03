@@ -23,16 +23,9 @@ import (
 
 func main() {
 	redisAddr := os.Getenv("REDIS_ADDR")
-	redis := shared.NewRedisClient(redisAddr)
+	cache := shared.NewRedisCacher(redisAddr)
 
-	seoHandler := seoDelivery.NewScanHandler(
-		seoUc.NewScanUsecase(
-			seoInfra.NewWebScanner(
-				seoInfra.CreateSecureClient(),
-			),
-			seoInfra.NewRedisReportRepo(redis),
-		),
-	)
+	seoHandler := getSeoHandler(cache)
 
 	engine := SetupRouter(seoHandler)
 
@@ -64,11 +57,20 @@ func main() {
 		log.Fatal("Server forced to shutdown: ", err)
 	}
 
-	if err := redis.Client.Close(); err != nil {
+	if err := cache.Close(); err != nil {
 		log.Printf("Error closing redis: %v", err)
 	}
 
 	log.Println("Server exiting")
+}
+
+func getSeoHandler(cacher shared.Cacher) *seoDelivery.ScanHandler {
+	client := seoInfra.CreateSecureClient()
+	scanner := seoInfra.NewWebScanner(client)
+	reportRepo := seoInfra.NewCacheReportRepo(cacher, 1*time.Hour)
+	usecase := seoUc.NewScanUsecase(scanner, reportRepo)
+	seoHandler := seoDelivery.NewScanHandler(usecase)
+	return seoHandler
 }
 
 func SetupRouter(handler *seoDelivery.ScanHandler) *gin.Engine {
