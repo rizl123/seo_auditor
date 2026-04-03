@@ -43,6 +43,13 @@ func (r *RedisCacher) Store(ctx context.Context, group string, key string, obj a
 	return r.Client.Set(ctx, group+":"+key, b, ttl).Err()
 }
 
+func (r *RedisCacher) PingWithTimeout(timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return r.Client.Ping(ctx).Err()
+}
+
 func (r *RedisCacher) Close() error {
 	return r.Client.Close()
 }
