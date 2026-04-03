@@ -3,14 +3,18 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /app
 
-RUN go install github.com/swaggo/swag/cmd/swag@latest
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go install github.com/swaggo/swag/cmd/swag@latest
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 COPY . .
 
-RUN swag init -g internal/cmd/main.go && \
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    swag init -g internal/cmd/main.go && \
     CGO_ENABLED=0 GOOS=linux go build -o backend internal/cmd/main.go && \
     chmod +x healthcheck.sh
 
