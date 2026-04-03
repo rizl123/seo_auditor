@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 echo "--- [BUILD] Generating Swagger docs..."
 swag init -g internal/cmd/main.go
