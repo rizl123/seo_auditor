@@ -1,17 +1,14 @@
 package bootstrap
 
 import (
-	_ "backend/docs"
-
 	"backend/internal/shared"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/adapters/humago"
 
 	seoDelivery "backend/internal/seo/delivery"
 	seoInfra "backend/internal/seo/infrastructure"
@@ -42,22 +39,19 @@ func SetupSeoHandler(cache shared.Cacher) *seoDelivery.ScanHandler {
 	return seoHandler
 }
 
-func SetupRouter(handler *seoDelivery.ScanHandler) *gin.Engine {
-	engine := gin.Default()
-	engine.RedirectTrailingSlash = true
+func SetupHuma(cacher shared.Cacher) http.Handler {
+	mux := http.NewServeMux()
 
-	api := engine.Group("/api")
-	{
-		api.GET("/swagger/*any", func(c *gin.Context) {
-			if c.Param("any") == "/" || c.Param("any") == "" {
-				c.Redirect(http.StatusMovedPermanently, "/api/swagger/index.html")
-				return
-			}
-			ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
-		})
+	config := huma.DefaultConfig("SEO Scanner API", "1.0.0")
 
-		seoDelivery.SetupRouter(api, handler)
-	}
+	config.DocsPath = ""
+	config.SchemasPath = "/api/schemas"
+	config.OpenAPIPath = "/api/openapi"
 
-	return engine
+	api := humago.New(mux, config)
+
+	seoHandler := SetupSeoHandler(cacher)
+	seoDelivery.RegisterRoutes(api, seoHandler)
+
+	return mux
 }

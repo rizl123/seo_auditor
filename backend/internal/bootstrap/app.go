@@ -1,33 +1,29 @@
 package bootstrap
 
 import (
+	"backend/internal/shared"
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"backend/internal/shared"
-
-	"github.com/gin-gonic/gin"
 )
 
 type App struct {
-	router *gin.Engine
-	cacher shared.Cacher
-	port   string
+	handler http.Handler
+	cacher  shared.Cacher
+	port    string
 }
 
 func NewApp() (*App, error) {
 	cacher, err := SetupCacher()
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup cacher: %w", err)
+		return nil, err
 	}
 
-	seoHandler := SetupSeoHandler(cacher)
+	handler := SetupHuma(cacher)
 
 	port := os.Getenv("APP_PORT")
 	if port == "" {
@@ -35,16 +31,16 @@ func NewApp() (*App, error) {
 	}
 
 	return &App{
-		router: SetupRouter(seoHandler),
-		cacher: cacher,
-		port:   port,
+		handler: handler,
+		cacher:  cacher,
+		port:    port,
 	}, nil
 }
 
 func (a *App) Run() {
 	srv := &http.Server{
 		Addr:         ":" + a.port,
-		Handler:      a.router,
+		Handler:      a.handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 20 * time.Second,
 		IdleTimeout:  120 * time.Second,

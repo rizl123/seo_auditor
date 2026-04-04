@@ -1,9 +1,17 @@
 package delivery
 
 import (
-	"github.com/gin-gonic/gin"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
-func SetupRouter(api *gin.RouterGroup, handler *ScanHandler) {
-	api.GET("/scan", handler.HandleScan)
+func RegisterRoutes(api huma.API, handler *ScanHandler) {
+	huma.Register(api, huma.Operation{
+		OperationID: "get-scan-report",
+		Method:      http.MethodGet,
+		Path:        "/api/scan",
+		Summary:     "Scan page and get report",
+		Tags:        []string{"scanner"},
+	}, handler.HandleScan)
 }
