@@ -5,10 +5,12 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
+	"github.com/rs/cors"
 
 	seoDelivery "backend/internal/seo/delivery"
 	"backend/internal/seo/domain"
@@ -61,5 +63,19 @@ func SetupHuma(cacher shared.Cacher) http.Handler {
 	seoHandler := SetupSeoHandler(cacher)
 	seoDelivery.RegisterRoutes(api, seoHandler)
 
-	return mux
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		allowedOrigins = "*"
+	}
+
+	c := cors.New(cors.Options{
+		AllowedOrigins:   strings.Split(allowedOrigins, ","),
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	})
+
+	return c.Handler(mux)
 }
