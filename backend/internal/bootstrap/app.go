@@ -18,10 +18,7 @@ type App struct {
 }
 
 func NewApp() (*App, error) {
-	cacher, err := SetupCacher()
-	if err != nil {
-		return nil, err
-	}
+	cacher := SetupCacher()
 
 	handler := SetupHuma(cacher)
 
@@ -66,8 +63,11 @@ func (a *App) Run() {
 		log.Fatal("Server forced to shutdown: ", err)
 	}
 
-	if err := a.cacher.Close(); err != nil {
-		log.Printf("Error closing redis: %v", err)
+	if a.cacher != nil {
+		if err := a.cacher.Close(); err != nil {
+			log.Printf("Error closing cacher: %v", err)
+		}
+
 	}
 
 	log.Println("Server exiting")

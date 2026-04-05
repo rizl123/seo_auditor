@@ -2,7 +2,7 @@ package bootstrap
 
 import (
 	"backend/internal/shared"
-	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -11,30 +11,39 @@ import (
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 
 	seoDelivery "backend/internal/seo/delivery"
+	"backend/internal/seo/domain"
 	seoInfra "backend/internal/seo/infrastructure"
 	seoUc "backend/internal/seo/usecase"
 )
 
-func SetupCacher() (shared.Cacher, error) {
+func SetupCacher() shared.Cacher {
 	redisAddr := os.Getenv("REDIS_ADDR")
 	if redisAddr == "" {
-		return nil, fmt.Errorf("REDIS_ADDR is not set")
+		slog.Warn("bootstrap: REDIS_ADDR not set, caching disabled")
+		return nil
 	}
 
 	cacher := shared.NewRedisCacher(redisAddr)
-	if err := cacher.PingWithTimeout(5 * time.Second); err != nil {
-		return nil, fmt.Errorf("redis ping failed: %w", err)
+	if err := cacher.PingWithTimeout(3 * time.Second); err != nil {
+		slog.Error("bootstrap: redis ping failed, running without cache", "error", err)
+		return nil
 	}
 
-	return cacher, nil
+	return cacher
 }
 
 func SetupSeoHandler(cacher shared.Cacher) *seoDelivery.ScanHandler {
 	client := seoInfra.CreateSecureClient()
-	baseScanner := seoInfra.NewWebScanner(client)
-	cachedScanner := seoInfra.NewCachedScanner(baseScanner, cacher, 1*time.Hour)
-	usecase := seoUc.NewScanUsecase(cachedScanner)
 
+	var scanner domain.Scanner = seoInfra.NewWebScanner(client)
+
+	if cacher != nil {
+		scanner = seoInfra.NewCachedScanner(scanner, cacher, 1*time.Hour, 1*time.Minute)
+	} else {
+		slog.Warn("bootstrap: scanner running without cache layer")
+	}
+
+	usecase := seoUc.NewScanUsecase(scanner)
 	return seoDelivery.NewScanHandler(usecase)
 }
 
