@@ -22,7 +22,6 @@ func SetupCacher() (shared.Cacher, error) {
 	}
 
 	cacher := shared.NewRedisCacher(redisAddr)
-
 	if err := cacher.PingWithTimeout(5 * time.Second); err != nil {
 		return nil, fmt.Errorf("redis ping failed: %w", err)
 	}
@@ -30,13 +29,13 @@ func SetupCacher() (shared.Cacher, error) {
 	return cacher, nil
 }
 
-func SetupSeoHandler(cache shared.Cacher) *seoDelivery.ScanHandler {
+func SetupSeoHandler(cacher shared.Cacher) *seoDelivery.ScanHandler {
 	client := seoInfra.CreateSecureClient()
-	scanner := seoInfra.NewWebScanner(client)
-	reportRepo := seoInfra.NewCacheReportRepo(cache, 1*time.Hour)
-	usecase := seoUc.NewScanUsecase(scanner, reportRepo)
-	seoHandler := seoDelivery.NewScanHandler(usecase)
-	return seoHandler
+	baseScanner := seoInfra.NewWebScanner(client)
+	cachedScanner := seoInfra.NewCachedScanner(baseScanner, cacher, 1*time.Hour)
+	usecase := seoUc.NewScanUsecase(cachedScanner)
+
+	return seoDelivery.NewScanHandler(usecase)
 }
 
 func SetupHuma(cacher shared.Cacher) http.Handler {

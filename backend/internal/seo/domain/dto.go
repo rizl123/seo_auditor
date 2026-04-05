@@ -5,6 +5,7 @@ import "time"
 type PageReport struct {
 	URL       string       `json:"url"`
 	Status    int          `json:"status"`
+	IsCached  bool         `json:"is_cached"`
 	ScannedAt time.Time    `json:"scanned_at"`
 	Metadata  *Metadata    `json:"metadata,omitempty"`
 	Network   *NetworkInfo `json:"network,omitempty"`
