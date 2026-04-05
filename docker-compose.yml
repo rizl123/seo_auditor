@@ -1,3 +1,6 @@
+volumes:
+  redis_data:
+
 services:
   nginx:
     build: ./nginx
@@ -20,7 +23,7 @@ services:
         required: false
 
   swagger:
-    image: swaggerapi/swagger-ui:v5.18.2
+    image: swaggerapi/swagger-ui:v5.32.1
     environment:
       SWAGGER_JSON_URL: /api/openapi.json
 
@@ -45,6 +48,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    volumes:
+      - redis_data:/data
 
   frontend:
     build: ./frontend

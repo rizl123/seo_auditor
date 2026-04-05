@@ -1,4 +1,4 @@
-FROM node:22.12.0-alpine AS builder
+FROM node:25.9.0-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -8,7 +8,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM node:22.12.0-alpine AS runner
+FROM node:25.9.0-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
