@@ -1,9 +1,10 @@
 package bootstrap
 
 import (
+	"backend/internal/config"
 	"backend/internal/shared"
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,29 +15,23 @@ import (
 type App struct {
 	handler http.Handler
 	cacher  shared.Cacher
-	port    string
+	config  *config.Config
 }
 
-func NewApp() (*App, error) {
-	cacher := SetupCacher()
-
-	handler := SetupHuma(cacher)
-
-	port := os.Getenv("APP_PORT")
-	if port == "" {
-		port = "8080"
-	}
+func NewApp(cfg *config.Config) *App {
+	cacher := SetupCacher(cfg)
+	handler := SetupHuma(cfg, cacher)
 
 	return &App{
 		handler: handler,
 		cacher:  cacher,
-		port:    port,
-	}, nil
+		config:  cfg,
+	}
 }
 
 func (a *App) Run() {
 	srv := &http.Server{
-		Addr:         ":" + a.port,
+		Addr:         ":" + a.config.AppPort,
 		Handler:      a.handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 20 * time.Second,
@@ -47,28 +42,29 @@ func (a *App) Run() {
 	defer stop()
 
 	go func() {
+		slog.Info("Server starting", "port", a.config.AppPort)
+
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+			slog.Error("Server failed to start", "error", err)
+			os.Exit(1)
 		}
 	}()
-	log.Printf("Server started on :%s", a.port)
 
 	<-ctx.Done()
-	log.Println("Shutting down gracefully...")
+	slog.Info("Shutting down gracefully...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Fatal("Server forced to shutdown: ", err)
+		slog.Error("Server forced to shutdown", "error", err)
 	}
 
 	if a.cacher != nil {
 		if err := a.cacher.Close(); err != nil {
-			log.Printf("Error closing cacher: %v", err)
+			slog.Error("Error closing cacher", "error", err)
 		}
-
 	}
 
-	log.Println("Server exiting")
+	slog.Info("Server exiting")
 }

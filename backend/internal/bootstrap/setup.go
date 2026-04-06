@@ -1,11 +1,10 @@
 package bootstrap
 
 import (
+	"backend/internal/config"
 	"backend/internal/shared"
 	"log/slog"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -18,14 +17,13 @@ import (
 	seoUc "backend/internal/seo/usecase"
 )
 
-func SetupCacher() shared.Cacher {
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
+func SetupCacher(cfg *config.Config) shared.Cacher {
+	if cfg.RedisAddr == "" {
 		slog.Warn("bootstrap: REDIS_ADDR not set, caching disabled")
 		return nil
 	}
 
-	cacher := shared.NewRedisCacher(redisAddr)
+	cacher := shared.NewRedisCacher(cfg.RedisAddr)
 	if err := cacher.PingWithTimeout(3 * time.Second); err != nil {
 		slog.Error("bootstrap: redis ping failed, running without cache", "error", err)
 		return nil
@@ -34,42 +32,34 @@ func SetupCacher() shared.Cacher {
 	return cacher
 }
 
-func SetupSeoHandler(cacher shared.Cacher) *seoDelivery.ScanHandler {
+func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.ScanHandler {
 	client := seoInfra.CreateSecureClient()
 
 	var scanner domain.Scanner = seoInfra.NewWebScanner(client)
 
 	if cacher != nil {
-		scanner = seoInfra.NewCachedScanner(scanner, cacher, 1*time.Hour, 1*time.Minute)
-	} else {
-		slog.Warn("bootstrap: scanner running without cache layer")
+		scanner = seoInfra.NewCachedScanner(scanner, cacher, cfg.CacheTTL, cfg.CacheBreakDuration)
 	}
 
 	usecase := seoUc.NewScanUsecase(scanner)
 	return seoDelivery.NewScanHandler(usecase)
 }
 
-func SetupHuma(cacher shared.Cacher) http.Handler {
+func SetupHuma(cfg *config.Config, cacher shared.Cacher) http.Handler {
 	mux := http.NewServeMux()
+	humaConfig := huma.DefaultConfig("SEO Scanner API", "1.0.0")
 
-	config := huma.DefaultConfig("SEO Scanner API", "1.0.0")
+	humaConfig.DocsPath = ""
+	humaConfig.SchemasPath = "/api/schemas"
+	humaConfig.OpenAPIPath = "/api/openapi"
 
-	config.DocsPath = ""
-	config.SchemasPath = "/api/schemas"
-	config.OpenAPIPath = "/api/openapi"
+	api := humago.New(mux, humaConfig)
 
-	api := humago.New(mux, config)
-
-	seoHandler := SetupSeoHandler(cacher)
+	seoHandler := SetupSeoHandler(cfg, cacher)
 	seoDelivery.RegisterRoutes(api, seoHandler)
 
-	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-	if allowedOrigins == "" {
-		allowedOrigins = "*"
-	}
-
 	c := cors.New(cors.Options{
-		AllowedOrigins:   strings.Split(allowedOrigins, ","),
+		AllowedOrigins:   cfg.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},

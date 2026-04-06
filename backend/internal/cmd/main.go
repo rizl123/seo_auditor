@@ -2,14 +2,13 @@ package main
 
 import (
 	"backend/internal/bootstrap"
-	"log"
+	"backend/internal/config"
 )
 
 func main() {
-	app, err := bootstrap.NewApp()
-	if err != nil {
-		log.Fatalf("Failed to initialize application: %v", err)
-	}
+	cfg := config.Load()
+	cfg.Log()
 
+	app := bootstrap.NewApp(cfg)
 	app.Run()
 }
