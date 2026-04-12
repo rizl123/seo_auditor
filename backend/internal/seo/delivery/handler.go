@@ -4,6 +4,7 @@ import (
 	"backend/internal/seo/domain"
 	"backend/internal/seo/usecase"
 	"context"
+	"fmt"
 )
 
 type ScanHandler struct {
@@ -25,7 +26,7 @@ type ScanOutput struct {
 func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOutput, error) {
 	report, err := h.usecase.Execute(ctx, input.URL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("delivery: handle scan: %w", err)
 	}
 
 	return &ScanOutput{Body: report}, nil

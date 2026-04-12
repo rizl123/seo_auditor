@@ -4,7 +4,9 @@ import (
 	"backend/internal/seo/domain"
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -28,14 +30,22 @@ func (s *WebScanner) Scan(ctx context.Context, urlStr string) (*domain.PageRepor
 	}
 
 	start := time.Now()
-	req, _ := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
+	if err != nil {
+		slog.Error("infrastructure: failed to create http request", "url", urlStr, "error", err)
+		return nil, fmt.Errorf("create request: %w", err)
+	}
 	req.Header.Set("User-Agent", "SiteInspector/1.0 (Bot)")
 
 	res, err := s.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("infrastructure: http request failed: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			slog.Error("infrastructure: failed to close response body", "error", err)
+		}
+	}()
 
 	report := &domain.PageReport{
 		URL:       urlStr,

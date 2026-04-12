@@ -14,17 +14,17 @@ func TestWebScanner_Scan(t *testing.T) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`
-			<html>
-				<head>
-					<title>Go Test Page</title>
-					<meta name="description" content="SEO testing is fun">
-				</head>
-				<body>
-					<h1>Hello World</h1>
-					<h1>Second Title</h1>
-				</body>
-			</html>
-		`))
+            <html>
+                <head>
+                    <title>Go Test Page</title>
+                    <meta name="description" content="SEO testing is fun">
+                </head>
+                <body>
+                    <h1>Hello World</h1>
+                    <h1>Second Title</h1>
+                </body>
+            </html>
+        `))
 	}))
 	defer server.Close()
 

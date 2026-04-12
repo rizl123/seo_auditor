@@ -1,0 +1,58 @@
+version: "2"
+
+run:
+  tests: false
+  go: "1.26"
+
+  timeout: 5m
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - gosec
+    - misspell
+    - staticcheck
+    - unused
+    - bodyclose
+    - cyclop
+    - dupl
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - lll
+    - nakedret
+    - nestif
+    - nilerr
+    - noctx
+    - nolintlint
+    - prealloc
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+    - whitespace
+    - wrapcheck
+    - tparallel
+
+issues:
+  exclude-use-default: false
+
+  max-issues-per-linter: 0
+
+  max-same-issues: 0
+
+linters-settings:
+  govet:
+    enable-all: true
+  gocyclo:
+    min-complexity: 15
+  lll:
+    line-length: 120

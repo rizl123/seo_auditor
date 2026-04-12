@@ -5,6 +5,7 @@ import (
 	"backend/internal/shared"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -48,20 +49,34 @@ func (s *CachedScanner) Scan(ctx context.Context, url string) (*domain.PageRepor
 
 	res, err := s.base.Scan(ctx, url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("infrastructure: base scan failed: %w", err)
 	}
 
 	if res.Status == 200 && cacheAvailable {
 		res.IsCached = false
-		go func(u string, r domain.PageReport) {
-			bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-			defer cancel()
-
-			_ = s.cacher.Store(bgCtx, "scan", u, &r, s.ttl)
-		}(url, *res)
+		go s.store(ctx, url, *res)
 	}
 
 	return res, nil
+}
+
+func (s *CachedScanner) store(ctx context.Context, url string, report domain.PageReport) {
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("infrastructure: panic in store goroutine", "recover", r, "url", url)
+		}
+	}()
+
+	detachedCtx := context.WithoutCancel(ctx)
+
+	bgCtx, cancel := context.WithTimeout(detachedCtx, 3*time.Second)
+	defer cancel()
+
+	err := s.cacher.Store(bgCtx, "scan", url, &report, s.ttl)
+	if err != nil {
+		slog.Warn("infrastructure: failed to store in cache, tripping circuit breaker", "url", url, "error", err)
+		s.disableCache()
+	}
 }
 
 func (s *CachedScanner) isCacheAvailable() bool {

@@ -93,7 +93,7 @@ func TestCachedScanner_Scan_Logic(t *testing.T) {
 		mC.AssertExpectations(t)
 	})
 
-	t.Run("CircuitBreaker_Activation", func(t *testing.T) {
+	t.Run("CircuitBreaker_Activation_On_Fetch_Error", func(t *testing.T) {
 		mC, mB := new(MockCacher), new(MockBaseScanner)
 		scanner := NewCachedScanner(mB, mC, time.Hour, time.Minute)
 
@@ -107,6 +107,59 @@ func TestCachedScanner_Scan_Logic(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, res.IsCached)
 		mC.AssertNumberOfCalls(t, "Fetch", 1)
+	})
+
+	t.Run("CircuitBreaker_Activation_On_Store_Error", func(t *testing.T) {
+		mC, mB := new(MockCacher), new(MockBaseScanner)
+		scanner := NewCachedScanner(mB, mC, time.Hour, time.Minute)
+
+		mC.On("Fetch", ctx, "scan", targetURL, mock.Anything).Return(shared.ErrCacheMiss).Twice()
+		mB.On("Scan", ctx, targetURL).Return(report, nil).Twice()
+
+		storeDone := make(chan struct{})
+		mC.On("Store", mock.Anything, "scan", targetURL, mock.Anything, mock.Anything).
+			Return(assert.AnError).Once().Run(func(args mock.Arguments) {
+			close(storeDone)
+		})
+
+		_, _ = scanner.Scan(ctx, targetURL)
+
+		select {
+		case <-storeDone:
+		case <-time.After(1 * time.Second):
+			t.Fatal("Store was not called")
+		}
+
+		time.Sleep(10 * time.Millisecond)
+
+		res, err := scanner.Scan(ctx, targetURL)
+
+		assert.NoError(t, err)
+		assert.False(t, res.IsCached)
+		mC.AssertNumberOfCalls(t, "Fetch", 1)
+	})
+
+	t.Run("Store_Panic_Recovery", func(t *testing.T) {
+		mC, mB := new(MockCacher), new(MockBaseScanner)
+		scanner := NewCachedScanner(mB, mC, time.Hour, time.Minute)
+
+		mC.On("Fetch", ctx, "scan", targetURL, mock.Anything).Return(shared.ErrCacheMiss)
+		mB.On("Scan", ctx, targetURL).Return(report, nil)
+
+		panicDone := make(chan struct{})
+		mC.On("Store", mock.Anything, "scan", targetURL, mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				defer close(panicDone)
+				panic("cacher panic")
+			}).Return(nil)
+
+		_, _ = scanner.Scan(ctx, targetURL)
+
+		select {
+		case <-panicDone:
+		case <-time.After(1 * time.Second):
+			t.Fatal("Panic was not recovered")
+		}
 	})
 }
 

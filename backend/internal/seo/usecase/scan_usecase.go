@@ -3,6 +3,7 @@ package usecase
 import (
 	"backend/internal/seo/domain"
 	"context"
+	"fmt"
 )
 
 type ScanUsecase struct {
@@ -14,5 +15,9 @@ func NewScanUsecase(s domain.Scanner) *ScanUsecase {
 }
 
 func (u *ScanUsecase) Execute(ctx context.Context, url string) (*domain.PageReport, error) {
-	return u.scanner.Scan(ctx, url)
+	report, err := u.scanner.Scan(ctx, url)
+	if err != nil {
+		return nil, fmt.Errorf("usecase: scan execution failed: %w", err)
+	}
+	return report, nil
 }

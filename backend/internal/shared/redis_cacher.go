@@ -52,17 +52,19 @@ func (r *RedisCacher) Store(ctx context.Context, group string, key string, obj a
 	err = r.Client.Set(ctx, fullKey, b, ttl).Err()
 	if err != nil {
 		slog.Error("redis: set failed", "key", fullKey, "error", err)
+		return fmt.Errorf("redis: store failed: %w", err)
 	}
-	return err
+
+	return nil
 }
 
 func (r *RedisCacher) PingWithTimeout(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	return r.Client.Ping(ctx).Err()
+	return fmt.Errorf("redis: ping failed: %w", r.Client.Ping(ctx).Err())
 }
 
 func (r *RedisCacher) Close() error {
-	return r.Client.Close()
+	return fmt.Errorf("redis: close failed: %w", r.Client.Close())
 }
