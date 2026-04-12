@@ -1,10 +1,11 @@
 package delivery
 
 import (
-	"backend/internal/seo/domain"
+	"backend/internal/seo/infrastructure"
 	"backend/internal/seo/usecase"
 	"context"
 	"fmt"
+	"net/url"
 )
 
 type ScanHandler struct {
@@ -20,14 +21,19 @@ type ScanInput struct {
 }
 
 type ScanOutput struct {
-	Body *domain.PageReport
+	Body *infrastructure.PageReportDTO
 }
 
 func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOutput, error) {
-	report, err := h.usecase.Execute(ctx, input.URL)
+	url, err := url.Parse(input.URL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid url: %w", err)
+	}
+
+	report, err := h.usecase.Execute(ctx, url)
 	if err != nil {
 		return nil, fmt.Errorf("delivery: handle scan: %w", err)
 	}
 
-	return &ScanOutput{Body: report}, nil
+	return &ScanOutput{Body: infrastructure.NewPageReportDTO(report)}, nil
 }

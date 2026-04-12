@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	neturl "net/url"
 	"sync"
 	"time"
 )
@@ -29,21 +30,12 @@ func NewCachedScanner(base domain.Scanner, cacher shared.Cacher, ttl, breakDurat
 	}
 }
 
-func (s *CachedScanner) Scan(ctx context.Context, url string) (*domain.PageReport, error) {
+func (s *CachedScanner) Scan(ctx context.Context, url *neturl.URL) (*domain.PageReport, error) {
 	cacheAvailable := s.isCacheAvailable()
 
 	if cacheAvailable {
-		var report domain.PageReport
-		err := s.cacher.Fetch(ctx, "scan", url, &report)
-
-		if err == nil {
-			report.IsCached = true
-			return &report, nil
-		}
-
-		if !errors.Is(err, shared.ErrCacheMiss) {
-			slog.Warn("infrastructure: disabling cache due to error", "url", url, "error", err)
-			s.disableCache()
+		if report := s.fetch(ctx, url); report != nil {
+			return report, nil
 		}
 	}
 
@@ -60,21 +52,46 @@ func (s *CachedScanner) Scan(ctx context.Context, url string) (*domain.PageRepor
 	return res, nil
 }
 
-func (s *CachedScanner) store(ctx context.Context, url string, report domain.PageReport) {
+func (s *CachedScanner) fetch(ctx context.Context, url *neturl.URL) *domain.PageReport {
+	var dto PageReportDTO
+	err := s.cacher.Fetch(ctx, "scan", url.String(), &dto)
+
+	if err == nil {
+		report := PageReportFromDTO(dto)
+		report.IsCached = true
+		return &report
+	}
+
+	if !errors.Is(err, shared.ErrCacheMiss) {
+		slog.Warn("infrastructure: disabling cache due to error",
+			"url", neturl.QueryEscape(url.String()),
+			"error", err,
+		)
+		s.disableCache()
+	}
+
+	return nil
+}
+
+func (s *CachedScanner) store(ctx context.Context, url *neturl.URL, report domain.PageReport) {
 	defer func() {
 		if r := recover(); r != nil {
-			slog.Error("infrastructure: panic in store goroutine", "recover", r, "url", url)
+			slog.Error("infrastructure: panic in store goroutine", "recover", r, "url", neturl.QueryEscape(url.String()))
 		}
 	}()
 
 	detachedCtx := context.WithoutCancel(ctx)
-
 	bgCtx, cancel := context.WithTimeout(detachedCtx, 3*time.Second)
 	defer cancel()
 
-	err := s.cacher.Store(bgCtx, "scan", url, &report, s.ttl)
+	dto := NewPageReportDTO(&report)
+
+	err := s.cacher.Store(bgCtx, "scan", url.String(), dto, s.ttl)
 	if err != nil {
-		slog.Warn("infrastructure: failed to store in cache, tripping circuit breaker", "url", url, "error", err)
+		slog.Warn("infrastructure: failed to store in cache, tripping circuit breaker",
+			"url", neturl.QueryEscape(url.String()),
+			"error", err,
+		)
 		s.disableCache()
 	}
 }
@@ -89,5 +106,6 @@ func (s *CachedScanner) disableCache() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.cacheDisabledUntil = time.Now().Add(s.breakDuration)
-	slog.Info("infrastructure: cache breaker active", "duration", s.breakDuration)
+	// #nosec G706
+	slog.Info("infrastructure: cache breaker active", "duration", s.breakDuration.Milliseconds())
 }

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	neturl "net/url"
 	"strings"
 	"syscall"
 	"time"
@@ -24,15 +25,15 @@ func NewWebScanner(client *http.Client) *WebScanner {
 	return &WebScanner{client: client}
 }
 
-func (s *WebScanner) Scan(ctx context.Context, urlStr string) (*domain.PageReport, error) {
-	if !strings.HasPrefix(urlStr, "http") {
+func (s *WebScanner) Scan(ctx context.Context, url *neturl.URL) (*domain.PageReport, error) {
+	if !strings.HasPrefix(url.Scheme, "http") {
 		return nil, errors.New("invalid protocol")
 	}
 
 	start := time.Now()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
 	if err != nil {
-		slog.Error("infrastructure: failed to create http request", "url", urlStr, "error", err)
+		slog.Error("infrastructure: failed to create http request", "url", neturl.QueryEscape(url.String()), "error", err)
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("User-Agent", "SiteInspector/1.0 (Bot)")
@@ -48,13 +49,13 @@ func (s *WebScanner) Scan(ctx context.Context, urlStr string) (*domain.PageRepor
 	}()
 
 	report := &domain.PageReport{
-		URL:       urlStr,
+		URL:       url,
 		Status:    res.StatusCode,
 		ScannedAt: time.Now(),
 		Network: &domain.NetworkInfo{
-			ResponseTimeMs: time.Since(start).Milliseconds(),
-			Server:         res.Header.Get("Server"),
-			ContentType:    res.Header.Get("Content-Type"),
+			ResponseTime: time.Since(start),
+			Server:       res.Header.Get("Server"),
+			ContentType:  res.Header.Get("Content-Type"),
 		},
 	}
 

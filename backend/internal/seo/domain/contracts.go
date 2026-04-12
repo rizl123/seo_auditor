@@ -1,7 +1,10 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"net/url"
+)
 
 type Scanner interface {
-	Scan(ctx context.Context, urlStr string) (*PageReport, error)
+	Scan(ctx context.Context, url *url.URL) (*PageReport, error)
 }

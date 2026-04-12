@@ -4,6 +4,7 @@ import (
 	"backend/internal/seo/domain"
 	"backend/internal/shared"
 	"context"
+	"net/url"
 	"testing"
 	"time"
 
@@ -18,8 +19,8 @@ type MockCacher struct{ mock.Mock }
 func (m *MockCacher) Fetch(ctx context.Context, group string, key string, obj any) error {
 	args := m.Called(ctx, group, key, obj)
 	if args.Get(0) == nil {
-		if val, ok := args.Get(1).(*domain.PageReport); ok && obj != nil {
-			*(obj.(*domain.PageReport)) = *val
+		if val, ok := args.Get(1).(*PageReportDTO); ok && obj != nil {
+			*(obj.(*PageReportDTO)) = *val
 		}
 		return nil
 	}
@@ -35,7 +36,7 @@ func (m *MockCacher) Close() error                          { return m.Called().
 
 type MockBaseScanner struct{ mock.Mock }
 
-func (m *MockBaseScanner) Scan(ctx context.Context, url string) (*domain.PageReport, error) {
+func (m *MockBaseScanner) Scan(ctx context.Context, url *url.URL) (*domain.PageReport, error) {
 	args := m.Called(ctx, url)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -45,14 +46,17 @@ func (m *MockBaseScanner) Scan(ctx context.Context, url string) (*domain.PageRep
 
 func TestCachedScanner_Scan_Logic(t *testing.T) {
 	ctx := context.Background()
-	targetURL := "https://example.com"
+	const targetURLStr = "https://example.com"
+	targetURL, err := url.Parse(targetURLStr)
+	assert.NoError(t, err)
 	report := &domain.PageReport{URL: targetURL, Status: 200}
+	reportDTO := NewPageReportDTO(report)
 
 	t.Run("CacheHit", func(t *testing.T) {
 		mC, mB := new(MockCacher), new(MockBaseScanner)
 		scanner := NewCachedScanner(mB, mC, time.Hour, time.Minute)
 
-		mC.On("Fetch", ctx, "scan", targetURL, mock.Anything).Return(nil, report)
+		mC.On("Fetch", ctx, "scan", targetURLStr, mock.AnythingOfType("*infrastructure.PageReportDTO")).Return(nil, reportDTO)
 
 		res, err := scanner.Scan(ctx, targetURL)
 
@@ -65,15 +69,15 @@ func TestCachedScanner_Scan_Logic(t *testing.T) {
 		mC, mB := new(MockCacher), new(MockBaseScanner)
 		scanner := NewCachedScanner(mB, mC, time.Hour, time.Minute)
 
-		mC.On("Fetch", ctx, "scan", targetURL, mock.Anything).Return(shared.ErrCacheMiss)
+		mC.On("Fetch", ctx, "scan", targetURLStr, mock.Anything).Return(shared.ErrCacheMiss)
 		mB.On("Scan", ctx, targetURL).Return(report, nil)
 
 		storeCalled := make(chan struct{})
 		mC.On("Store",
 			mock.Anything,
 			"scan",
-			targetURL,
-			mock.AnythingOfType("*domain.PageReport"),
+			targetURLStr,
+			mock.AnythingOfType("*infrastructure.PageReportDTO"),
 			time.Hour,
 		).Return(nil).Run(func(args mock.Arguments) {
 			close(storeCalled)
@@ -97,9 +101,9 @@ func TestCachedScanner_Scan_Logic(t *testing.T) {
 		mC, mB := new(MockCacher), new(MockBaseScanner)
 		scanner := NewCachedScanner(mB, mC, time.Hour, time.Minute)
 
-		mC.On("Fetch", ctx, "scan", targetURL, mock.Anything).Return(assert.AnError).Once()
+		mC.On("Fetch", ctx, "scan", targetURLStr, mock.Anything).Return(assert.AnError).Once()
 		mB.On("Scan", ctx, targetURL).Return(report, nil).Twice()
-		mC.On("Store", mock.Anything, "scan", targetURL, mock.Anything, mock.Anything).Return(nil).Maybe()
+		mC.On("Store", mock.Anything, "scan", targetURLStr, mock.Anything, mock.Anything).Return(nil).Maybe()
 
 		_, _ = scanner.Scan(ctx, targetURL)
 		res, err := scanner.Scan(ctx, targetURL)
@@ -113,11 +117,11 @@ func TestCachedScanner_Scan_Logic(t *testing.T) {
 		mC, mB := new(MockCacher), new(MockBaseScanner)
 		scanner := NewCachedScanner(mB, mC, time.Hour, time.Minute)
 
-		mC.On("Fetch", ctx, "scan", targetURL, mock.Anything).Return(shared.ErrCacheMiss).Twice()
+		mC.On("Fetch", ctx, "scan", targetURLStr, mock.Anything).Return(shared.ErrCacheMiss).Twice()
 		mB.On("Scan", ctx, targetURL).Return(report, nil).Twice()
 
 		storeDone := make(chan struct{})
-		mC.On("Store", mock.Anything, "scan", targetURL, mock.Anything, mock.Anything).
+		mC.On("Store", mock.Anything, "scan", targetURLStr, mock.Anything, mock.Anything).
 			Return(assert.AnError).Once().Run(func(args mock.Arguments) {
 			close(storeDone)
 		})
@@ -143,11 +147,11 @@ func TestCachedScanner_Scan_Logic(t *testing.T) {
 		mC, mB := new(MockCacher), new(MockBaseScanner)
 		scanner := NewCachedScanner(mB, mC, time.Hour, time.Minute)
 
-		mC.On("Fetch", ctx, "scan", targetURL, mock.Anything).Return(shared.ErrCacheMiss)
+		mC.On("Fetch", ctx, "scan", targetURLStr, mock.Anything).Return(shared.ErrCacheMiss)
 		mB.On("Scan", ctx, targetURL).Return(report, nil)
 
 		panicDone := make(chan struct{})
-		mC.On("Store", mock.Anything, "scan", targetURL, mock.Anything, mock.Anything).
+		mC.On("Store", mock.Anything, "scan", targetURLStr, mock.Anything, mock.Anything).
 			Run(func(args mock.Arguments) {
 				defer close(panicDone)
 				panic("cacher panic")
@@ -169,26 +173,26 @@ func TestCachedScanner_Integration_Miniredis(t *testing.T) {
 	c := &shared.RedisCacher{Client: r}
 
 	ctx := context.Background()
-	url := "https://example.com"
+	urlParsed, _ := url.Parse("https://example.com")
 	ttl := time.Minute
 
 	mB := new(MockBaseScanner)
 	scanner := NewCachedScanner(mB, c, ttl, time.Minute)
-	report := &domain.PageReport{URL: url, Status: 200}
+	report := &domain.PageReport{URL: urlParsed, Status: 200}
 
-	mB.On("Scan", ctx, url).Return(report, nil).Once()
+	mB.On("Scan", ctx, urlParsed).Return(report, nil).Once()
 
-	res1, _ := scanner.Scan(ctx, url)
+	res1, _ := scanner.Scan(ctx, urlParsed)
 	assert.False(t, res1.IsCached)
-	assert.Eventually(t, func() bool { return s.Exists("scan:" + url) }, 500*time.Millisecond, 10*time.Millisecond)
+	assert.Eventually(t, func() bool { return s.Exists("scan:" + urlParsed.String()) }, 500*time.Millisecond, 10*time.Millisecond)
 
-	res2, _ := scanner.Scan(ctx, url)
+	res2, _ := scanner.Scan(ctx, urlParsed)
 	assert.True(t, res2.IsCached)
 
 	s.FastForward(ttl + time.Second)
-	mB.On("Scan", ctx, url).Return(report, nil).Once()
+	mB.On("Scan", ctx, urlParsed).Return(report, nil).Once()
 
-	res3, _ := scanner.Scan(ctx, url)
+	res3, _ := scanner.Scan(ctx, urlParsed)
 	assert.False(t, res3.IsCached)
 
 	mB.AssertExpectations(t)
