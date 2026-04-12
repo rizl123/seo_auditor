@@ -62,9 +62,19 @@ func (r *RedisCacher) PingWithTimeout(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	return fmt.Errorf("redis: ping failed: %w", r.Client.Ping(ctx).Err())
+	err := r.Client.Ping(ctx).Err()
+	if err != nil {
+		return fmt.Errorf("redis: ping failed: %w", err)
+	}
+
+	return nil
 }
 
 func (r *RedisCacher) Close() error {
-	return fmt.Errorf("redis: close failed: %w", r.Client.Close())
+	err := r.Client.Close()
+	if err != nil {
+		return fmt.Errorf("redis: close failed: %w", err)
+	}
+
+	return nil
 }

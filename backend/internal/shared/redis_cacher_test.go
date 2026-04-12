@@ -70,14 +70,17 @@ func TestRedisCacher(t *testing.T) {
 	})
 
 	t.Run("Reliability_ConnectionLoss", func(t *testing.T) {
-		tmpMr, _ := miniredis.Run()
+		tmpMr, err := miniredis.Run()
+		assert.NoError(t, err)
+
 		tmpCacher := NewRedisCacher(tmpMr.Addr())
 
-		assert.NoError(t, tmpCacher.PingWithTimeout(time.Second))
+		err = tmpCacher.PingWithTimeout(time.Second)
+		assert.NoError(t, err)
 
 		tmpMr.Close()
 
-		err := tmpCacher.PingWithTimeout(time.Millisecond * 50)
+		err = tmpCacher.PingWithTimeout(time.Millisecond * 50)
 		assert.Error(t, err)
 	})
 
