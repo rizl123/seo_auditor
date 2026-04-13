@@ -19,8 +19,8 @@ type MockCacher struct{ mock.Mock }
 func (m *MockCacher) Fetch(ctx context.Context, group string, key string, obj any) error {
 	args := m.Called(ctx, group, key, obj)
 	if args.Get(0) == nil {
-		if val, ok := args.Get(1).(*PageReportDTO); ok && obj != nil {
-			*(obj.(*PageReportDTO)) = *val
+		if val, ok := args.Get(1).(*domain.PageReport); ok && obj != nil {
+			*(obj.(*domain.PageReport)) = *val
 		}
 		return nil
 	}
@@ -49,19 +49,25 @@ func TestCachedScanner_Scan_Logic(t *testing.T) {
 	const targetURLStr = "https://example.com"
 	targetURL, err := url.Parse(targetURLStr)
 	assert.NoError(t, err)
-	report := &domain.PageReport{URL: targetURL, Status: 200}
-	reportDTO := NewPageReportDTO(report)
+
+	report := &domain.PageReport{
+		URL:      targetURL,
+		Status:   200,
+		Metadata: &domain.Metadata{Title: "Example"},
+	}
 
 	t.Run("CacheHit", func(t *testing.T) {
 		mC, mB := new(MockCacher), new(MockBaseScanner)
 		scanner := NewCachedScanner(mB, mC, time.Hour, time.Minute)
 
-		mC.On("Fetch", ctx, "scan", targetURLStr, mock.AnythingOfType("*infrastructure.PageReportDTO")).Return(nil, reportDTO)
+		mC.On("Fetch", ctx, "scan", targetURLStr, mock.AnythingOfType("*domain.PageReport")).
+			Return(nil, report)
 
 		res, err := scanner.Scan(ctx, targetURL)
 
 		assert.NoError(t, err)
 		assert.True(t, res.IsCached)
+		assert.Equal(t, report.Status, res.Status)
 		mB.AssertNotCalled(t, "Scan", mock.Anything, mock.Anything)
 	})
 
@@ -77,7 +83,7 @@ func TestCachedScanner_Scan_Logic(t *testing.T) {
 			mock.Anything,
 			"scan",
 			targetURLStr,
-			mock.AnythingOfType("*infrastructure.PageReportDTO"),
+			mock.AnythingOfType("domain.PageReport"),
 			time.Hour,
 		).Return(nil).Run(func(args mock.Arguments) {
 			close(storeCalled)
@@ -184,10 +190,14 @@ func TestCachedScanner_Integration_Miniredis(t *testing.T) {
 
 	res1, _ := scanner.Scan(ctx, urlParsed)
 	assert.False(t, res1.IsCached)
-	assert.Eventually(t, func() bool { return s.Exists("scan:" + urlParsed.String()) }, 500*time.Millisecond, 10*time.Millisecond)
+
+	assert.Eventually(t, func() bool {
+		return s.Exists("scan:" + urlParsed.String())
+	}, 500*time.Millisecond, 10*time.Millisecond)
 
 	res2, _ := scanner.Scan(ctx, urlParsed)
 	assert.True(t, res2.IsCached)
+	assert.Equal(t, res1.URL.String(), res2.URL.String())
 
 	s.FastForward(ttl + time.Second)
 	mB.On("Scan", ctx, urlParsed).Return(report, nil).Once()

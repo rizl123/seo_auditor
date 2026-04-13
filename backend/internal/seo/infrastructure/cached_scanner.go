@@ -53,11 +53,10 @@ func (s *CachedScanner) Scan(ctx context.Context, url *neturl.URL) (*domain.Page
 }
 
 func (s *CachedScanner) fetch(ctx context.Context, url *neturl.URL) *domain.PageReport {
-	var dto PageReportDTO
-	err := s.cacher.Fetch(ctx, "scan", url.String(), &dto)
+	var report domain.PageReport
+	err := s.cacher.Fetch(ctx, "scan", url.String(), &report)
 
 	if err == nil {
-		report := PageReportFromDTO(dto)
 		report.IsCached = true
 		return &report
 	}
@@ -84,9 +83,7 @@ func (s *CachedScanner) store(ctx context.Context, url *neturl.URL, report domai
 	bgCtx, cancel := context.WithTimeout(detachedCtx, 3*time.Second)
 	defer cancel()
 
-	dto := NewPageReportDTO(&report)
-
-	err := s.cacher.Store(bgCtx, "scan", url.String(), dto, s.ttl)
+	err := s.cacher.Store(bgCtx, "scan", url.String(), report, s.ttl)
 	if err != nil {
 		slog.Warn("infrastructure: failed to store in cache, tripping circuit breaker",
 			"url", neturl.QueryEscape(url.String()),

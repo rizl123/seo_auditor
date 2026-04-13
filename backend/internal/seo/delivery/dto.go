@@ -1,4 +1,4 @@
-package infrastructure
+package delivery
 
 import (
 	"backend/internal/seo/domain"
@@ -15,7 +15,7 @@ type PageReportDTO struct {
 	Network   *NetworkInfoDTO `json:"network,omitempty"`
 }
 
-func NewPageReportDTO(report *domain.PageReport) *PageReportDTO {
+func ToPageReportDTO(report *domain.PageReport) *PageReportDTO {
 	if report == nil {
 		return nil
 	}
@@ -47,7 +47,7 @@ func NewPageReportDTO(report *domain.PageReport) *PageReportDTO {
 	return dto
 }
 
-func PageReportFromDTO(dto PageReportDTO) domain.PageReport {
+func ToPageReport(dto PageReportDTO) domain.PageReport {
 	u, _ := neturl.Parse(dto.URL)
 	report := domain.PageReport{
 		URL:       u,

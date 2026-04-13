@@ -1,7 +1,6 @@
 package delivery
 
 import (
-	"backend/internal/seo/infrastructure"
 	"backend/internal/seo/usecase"
 	"context"
 	"fmt"
@@ -21,7 +20,7 @@ type ScanInput struct {
 }
 
 type ScanOutput struct {
-	Body *infrastructure.PageReportDTO
+	Body *PageReportDTO
 }
 
 func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOutput, error) {
@@ -35,5 +34,5 @@ func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOu
 		return nil, fmt.Errorf("delivery: handle scan: %w", err)
 	}
 
-	return &ScanOutput{Body: infrastructure.NewPageReportDTO(report)}, nil
+	return &ScanOutput{Body: ToPageReportDTO(report)}, nil
 }
