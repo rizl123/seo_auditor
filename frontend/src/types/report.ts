@@ -1,21 +1,26 @@
-export interface SeoMetadata {
+export interface Resource {
   title: string;
-  description: string;
-  h1: string[];
-  canonical: string;
-  og_image: string;
+  url: string;
 }
 
-export interface NetworkInfo {
-  content_type: string;
-  response_time_ms: number;
-  server: string;
+export interface Problem {
+  name: string;
+  description: string;
+  solutions: string[];
+  resources: Resource[];
+}
+
+export interface ScanResult {
+  auditor_name: string;
+  name: string;
+  description: string;
+  details: Record<string, any>;
+  problems: Problem[];
+  is_cached: boolean;
+  scanned_at: string;
 }
 
 export interface PageReport {
   url: string;
-  status: number;
-  scanned_at: string;
-  metadata?: SeoMetadata;
-  network?: NetworkInfo;
+  results: ScanResult[];
 }

@@ -10,28 +10,35 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockScanner struct{ mock.Mock }
+type MockMultiScanner struct{ mock.Mock }
 
-func (m *MockScanner) Scan(ctx context.Context, url *url.URL) (*domain.PageReport, error) {
-	args := m.Called(url)
+func (m *MockMultiScanner) Run(ctx context.Context, url *url.URL) (*domain.AggregatedReport, error) {
+	args := m.Called(ctx, url)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.PageReport), args.Error(1)
+	return args.Get(0).(*domain.AggregatedReport), args.Error(1)
 }
 
 func TestScanUsecase_Execute(t *testing.T) {
-	mockScanner := new(MockScanner)
+	mockScanner := new(MockMultiScanner)
 	uc := NewScanUsecase(mockScanner)
 
-	url, _ := url.Parse("https://test.com")
+	targetURL, _ := url.Parse("https://test.com")
 
-	report := &domain.PageReport{URL: url, Status: 200}
-	mockScanner.On("Scan", url).Return(report, nil)
+	report := &domain.AggregatedReport{
+		URL: targetURL,
+		Results: []domain.ScanResult{
+			{AuditorName: "meta", Name: "Meta Tags"},
+		},
+	}
 
-	result, err := uc.Execute(context.Background(), url)
+	mockScanner.On("Scan", mock.Anything, targetURL).Return(report, nil)
+
+	result, err := uc.Execute(context.Background(), targetURL)
 
 	assert.NoError(t, err)
 	assert.Equal(t, report, result)
+	assert.Len(t, result.Results, 1)
 	mockScanner.AssertExpectations(t)
 }

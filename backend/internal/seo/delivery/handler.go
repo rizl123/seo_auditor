@@ -20,7 +20,7 @@ type ScanInput struct {
 }
 
 type ScanOutput struct {
-	Body *PageReportDTO
+	Body *AggregatedReportDTO
 }
 
 func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOutput, error) {
@@ -34,5 +34,5 @@ func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOu
 		return nil, fmt.Errorf("delivery: handle scan: %w", err)
 	}
 
-	return &ScanOutput{Body: ToPageReportDTO(report)}, nil
+	return &ScanOutput{Body: ToAggregatedReportDTO(report)}, nil
 }

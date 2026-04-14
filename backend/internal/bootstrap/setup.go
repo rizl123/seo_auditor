@@ -12,8 +12,9 @@ import (
 	"github.com/rs/cors"
 
 	seoDelivery "backend/internal/seo/delivery"
-	"backend/internal/seo/domain"
+	seoDomain "backend/internal/seo/domain"
 	seoInfra "backend/internal/seo/infrastructure"
+	seoAuditors "backend/internal/seo/infrastructure/auditors"
 	seoUc "backend/internal/seo/usecase"
 )
 
@@ -33,15 +34,30 @@ func SetupCacher(cfg *config.Config) shared.Cacher {
 }
 
 func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.ScanHandler {
-	client := seoInfra.CreateSecureClient()
+	httpClient := seoInfra.CreateSecureClient()
+	webScanner := seoInfra.NewWebFetcher(httpClient)
 
-	var scanner domain.Scanner = seoInfra.NewWebScanner(client)
+	wrapWithCache := func(auditor seoDomain.Auditor) seoDomain.Auditor {
+		if cacher == nil {
+			return auditor
+		}
 
-	if cacher != nil {
-		scanner = seoInfra.NewCachedScanner(scanner, cacher, cfg.CacheTTL, cfg.CacheBreakDuration)
+		return seoInfra.NewCachedAuditor(
+			auditor,
+			cacher,
+			cfg.CacheTTL,
+			cfg.CacheBreakDuration,
+		)
 	}
 
-	usecase := seoUc.NewScanUsecase(scanner)
+	auditors := []seoDomain.Auditor{
+		wrapWithCache(seoAuditors.NewMetaAuditor()),
+		wrapWithCache(seoAuditors.NewPerformanceAuditor()),
+	}
+
+	runner := seoInfra.NewParallelRunner(webScanner, auditors...)
+	usecase := seoUc.NewScanUsecase(runner)
+
 	return seoDelivery.NewScanHandler(usecase)
 }
 

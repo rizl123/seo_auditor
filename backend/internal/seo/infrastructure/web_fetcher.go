@@ -17,15 +17,15 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-type WebScanner struct {
+type WebFetcher struct {
 	client *http.Client
 }
 
-func NewWebScanner(client *http.Client) *WebScanner {
-	return &WebScanner{client: client}
+func NewWebFetcher(client *http.Client) *WebFetcher {
+	return &WebFetcher{client: client}
 }
 
-func (s *WebScanner) Scan(ctx context.Context, url *neturl.URL) (*domain.PageReport, error) {
+func (s *WebFetcher) Scan(ctx context.Context, url *neturl.URL) (*domain.PageReport, error) {
 	if !strings.HasPrefix(url.Scheme, "http") {
 		return nil, errors.New("invalid protocol")
 	}

@@ -2,9 +2,89 @@ package delivery
 
 import (
 	"backend/internal/seo/domain"
-	neturl "net/url"
 	"time"
 )
+
+type AggregatedReportDTO struct {
+	URL     string          `json:"url"`
+	Results []ScanResultDTO `json:"results"`
+}
+
+type ScanResultDTO struct {
+	AuditorName string         `json:"auditor_name"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Details     map[string]any `json:"details,omitempty"`
+	Problems    []ProblemDTO   `json:"problems"`
+	IsCached    bool           `json:"is_cached"`
+	ScannedAt   time.Time      `json:"scanned_at"`
+}
+
+type ProblemDTO struct {
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Solutions   []string      `json:"solutions"`
+	Resources   []ResourceDTO `json:"resources"`
+}
+
+type ResourceDTO struct {
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
+
+func ToAggregatedReportDTO(report *domain.AggregatedReport) *AggregatedReportDTO {
+	if report == nil {
+		return nil
+	}
+
+	dto := &AggregatedReportDTO{
+		URL:     report.URL.String(),
+		Results: make([]ScanResultDTO, len(report.Results)),
+	}
+
+	for i, r := range report.Results {
+		dto.Results[i] = toScanResultDTO(r)
+	}
+
+	return dto
+}
+
+func toScanResultDTO(r domain.ScanResult) ScanResultDTO {
+	dto := ScanResultDTO{
+		AuditorName: r.AuditorName,
+		Name:        r.Name,
+		Description: r.Description,
+		Details:     r.Details,
+		IsCached:    r.IsCached,
+		ScannedAt:   r.ScannedAt,
+		Problems:    make([]ProblemDTO, len(r.Problems)),
+	}
+
+	for i, p := range r.Problems {
+		dto.Problems[i] = toProblemDTO(p)
+	}
+
+	return dto
+}
+
+func toProblemDTO(p domain.Problem) ProblemDTO {
+	resources := make([]ResourceDTO, len(p.Resources))
+	for i, r := range p.Resources {
+		resources[i] = ResourceDTO{Title: r.Title, URL: r.URL}
+	}
+
+	solutions := p.Solutions
+	if solutions == nil {
+		solutions = []string{}
+	}
+
+	return ProblemDTO{
+		Name:        p.Name,
+		Description: p.Description,
+		Solutions:   solutions,
+		Resources:   resources,
+	}
+}
 
 type PageReportDTO struct {
 	URL       string          `json:"url"`
@@ -13,68 +93,6 @@ type PageReportDTO struct {
 	ScannedAt time.Time       `json:"scanned_at"`
 	Metadata  *MetadataDTO    `json:"metadata,omitempty"`
 	Network   *NetworkInfoDTO `json:"network,omitempty"`
-}
-
-func ToPageReportDTO(report *domain.PageReport) *PageReportDTO {
-	if report == nil {
-		return nil
-	}
-	dto := &PageReportDTO{
-		URL:       report.URL.String(),
-		Status:    report.Status,
-		IsCached:  report.IsCached,
-		ScannedAt: report.ScannedAt,
-	}
-
-	if report.Metadata != nil {
-		dto.Metadata = &MetadataDTO{
-			Title:       report.Metadata.Title,
-			Description: report.Metadata.Description,
-			H1:          report.Metadata.H1,
-			Canonical:   report.Metadata.Canonical,
-			OgImage:     report.Metadata.OgImage,
-		}
-	}
-
-	if report.Network != nil {
-		dto.Network = &NetworkInfoDTO{
-			ResponseTimeMs: report.Network.ResponseTime.Milliseconds(),
-			Server:         report.Network.Server,
-			ContentType:    report.Network.ContentType,
-		}
-	}
-
-	return dto
-}
-
-func ToPageReport(dto PageReportDTO) domain.PageReport {
-	u, _ := neturl.Parse(dto.URL)
-	report := domain.PageReport{
-		URL:       u,
-		Status:    dto.Status,
-		IsCached:  dto.IsCached,
-		ScannedAt: dto.ScannedAt,
-	}
-
-	if dto.Metadata != nil {
-		report.Metadata = &domain.Metadata{
-			Title:       dto.Metadata.Title,
-			Description: dto.Metadata.Description,
-			H1:          dto.Metadata.H1,
-			Canonical:   dto.Metadata.Canonical,
-			OgImage:     dto.Metadata.OgImage,
-		}
-	}
-
-	if dto.Network != nil {
-		report.Network = &domain.NetworkInfo{
-			ResponseTime: time.Duration(dto.Network.ResponseTimeMs) * time.Millisecond,
-			Server:       dto.Network.Server,
-			ContentType:  dto.Network.ContentType,
-		}
-	}
-
-	return report
 }
 
 type MetadataDTO struct {

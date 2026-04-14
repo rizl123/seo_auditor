@@ -8,15 +8,15 @@ import (
 )
 
 type ScanUsecase struct {
-	scanner domain.Scanner
+	runner domain.Runner
 }
 
-func NewScanUsecase(s domain.Scanner) *ScanUsecase {
-	return &ScanUsecase{scanner: s}
+func NewScanUsecase(r domain.Runner) *ScanUsecase {
+	return &ScanUsecase{runner: r}
 }
 
-func (u *ScanUsecase) Execute(ctx context.Context, url *url.URL) (*domain.PageReport, error) {
-	report, err := u.scanner.Scan(ctx, url)
+func (u *ScanUsecase) Execute(ctx context.Context, url *url.URL) (*domain.AggregatedReport, error) {
+	report, err := u.runner.Run(ctx, url)
 	if err != nil {
 		return nil, fmt.Errorf("usecase: scan execution failed: %w", err)
 	}
