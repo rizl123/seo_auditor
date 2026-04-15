@@ -50,7 +50,7 @@ func (s *CachedAuditor) Analyze(ctx context.Context, report *domain.PageReport) 
 
 	result, err := s.base.Analyze(ctx, report)
 	if err != nil {
-		return nil, fmt.Errorf("infrastructure: named scanner %q failed: %w", s.AuditorName(), err)
+		return nil, fmt.Errorf("infrastructure: auditor %q failed: %w", s.AuditorName(), err)
 	}
 
 	if cacheAvailable {
@@ -75,9 +75,10 @@ func (s *CachedAuditor) fetch(ctx context.Context, key string) *domain.ScanResul
 	}
 
 	if !errors.Is(err, shared.ErrCacheMiss) {
+		// #nosec G706
 		slog.Warn("infrastructure: disabling cache due to error",
-			"scanner", s.AuditorName(),
-			"error", err,
+			"auditor", s.AuditorName(),
+			"error", err.Error(),
 		)
 		s.disableCache()
 	}
@@ -88,9 +89,10 @@ func (s *CachedAuditor) fetch(ctx context.Context, key string) *domain.ScanResul
 func (s *CachedAuditor) store(ctx context.Context, key string, result domain.ScanResult) {
 	defer func() {
 		if r := recover(); r != nil {
+			// #nosec G706
 			slog.Error("infrastructure: panic in store goroutine",
-				"recover", r,
-				"scanner", s.AuditorName(),
+				"recover", fmt.Sprintf("%v", r),
+				"auditor", s.AuditorName(),
 			)
 		}
 	}()
@@ -101,9 +103,10 @@ func (s *CachedAuditor) store(ctx context.Context, key string, result domain.Sca
 
 	err := s.cacher.Store(bgCtx, "named_scan", key, result, s.ttl)
 	if err != nil {
+		// #nosec G706
 		slog.Warn("infrastructure: failed to store in cache, tripping circuit breaker",
-			"scanner", s.AuditorName(),
-			"error", err,
+			"auditor", s.AuditorName(),
+			"error", err.Error(),
 		)
 		s.disableCache()
 	}
@@ -121,7 +124,7 @@ func (s *CachedAuditor) disableCache() {
 	s.cacheDisabledUntil = time.Now().Add(s.breakDuration)
 	// #nosec G706
 	slog.Info("infrastructure: cache breaker active",
-		"scanner", s.AuditorName(),
+		"auditor", s.AuditorName(),
 		"duration", s.breakDuration.Milliseconds(),
 	)
 }

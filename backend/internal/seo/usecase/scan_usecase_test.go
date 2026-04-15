@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockMultiScanner struct{ mock.Mock }
+type MockRunnner struct{ mock.Mock }
 
-func (m *MockMultiScanner) Run(ctx context.Context, url *url.URL) (*domain.AggregatedReport, error) {
+func (m *MockRunnner) Run(ctx context.Context, url *url.URL) (*domain.AggregatedReport, error) {
 	args := m.Called(ctx, url)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -21,8 +21,8 @@ func (m *MockMultiScanner) Run(ctx context.Context, url *url.URL) (*domain.Aggre
 }
 
 func TestScanUsecase_Execute(t *testing.T) {
-	mockScanner := new(MockMultiScanner)
-	uc := NewScanUsecase(mockScanner)
+	mockRunner := new(MockRunnner)
+	uc := NewScanUsecase(mockRunner)
 
 	targetURL, _ := url.Parse("https://test.com")
 
@@ -33,12 +33,12 @@ func TestScanUsecase_Execute(t *testing.T) {
 		},
 	}
 
-	mockScanner.On("Scan", mock.Anything, targetURL).Return(report, nil)
+	mockRunner.On("Run", mock.Anything, targetURL).Return(report, nil)
 
 	result, err := uc.Execute(context.Background(), targetURL)
 
 	assert.NoError(t, err)
 	assert.Equal(t, report, result)
 	assert.Len(t, result.Results, 1)
-	mockScanner.AssertExpectations(t)
+	mockRunner.AssertExpectations(t)
 }

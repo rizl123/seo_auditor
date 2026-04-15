@@ -35,7 +35,7 @@ func SetupCacher(cfg *config.Config) shared.Cacher {
 
 func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.ScanHandler {
 	httpClient := seoInfra.CreateSecureClient()
-	webScanner := seoInfra.NewWebFetcher(httpClient)
+	fetcher := seoInfra.NewWebFetcher(httpClient)
 
 	wrapWithCache := func(auditor seoDomain.Auditor) seoDomain.Auditor {
 		if cacher == nil {
@@ -55,7 +55,7 @@ func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.Scan
 		wrapWithCache(seoAuditors.NewPerformanceAuditor()),
 	}
 
-	runner := seoInfra.NewParallelRunner(webScanner, auditors...)
+	runner := seoInfra.NewParallelRunner(fetcher, auditors...)
 	usecase := seoUc.NewScanUsecase(runner)
 
 	return seoDelivery.NewScanHandler(usecase)
@@ -63,7 +63,7 @@ func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.Scan
 
 func SetupHuma(cfg *config.Config, cacher shared.Cacher) http.Handler {
 	mux := http.NewServeMux()
-	humaConfig := huma.DefaultConfig("SEO Scanner API", "1.0.0")
+	humaConfig := huma.DefaultConfig("SEO Auditor API", "1.0.0")
 
 	humaConfig.DocsPath = ""
 	humaConfig.SchemasPath = "/api/schemas"

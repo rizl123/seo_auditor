@@ -11,13 +11,13 @@ import (
 
 type ParallelRunner struct {
 	base     domain.Fetcher
-	scanners []domain.Auditor
+	auditors []domain.Auditor
 }
 
-func NewParallelRunner(base domain.Fetcher, scanners ...domain.Auditor) *ParallelRunner {
+func NewParallelRunner(base domain.Fetcher, auditors ...domain.Auditor) *ParallelRunner {
 	return &ParallelRunner{
 		base:     base,
-		scanners: scanners,
+		auditors: auditors,
 	}
 }
 
@@ -27,17 +27,17 @@ func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.Aggr
 		return nil, fmt.Errorf("infrastructure: base scan failed: %w", err)
 	}
 
-	results := make([]domain.ScanResult, len(m.scanners))
+	results := make([]domain.ScanResult, len(m.auditors))
 	var wg sync.WaitGroup
 
-	for i, scanner := range m.scanners {
+	for i, auditor := range m.auditors {
 		wg.Add(1)
 		go func(idx int, sc domain.Auditor) {
 			defer wg.Done()
 			defer func() {
 				if r := recover(); r != nil {
-					slog.Error("infrastructure: panic in named scanner",
-						"scanner", sc.AuditorName(),
+					slog.Error("infrastructure: panic in auditor",
+						"auditor", sc.AuditorName(),
 						"recover", r,
 					)
 				}
@@ -45,14 +45,14 @@ func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.Aggr
 
 			result, err := sc.Analyze(ctx, pageReport)
 			if err != nil {
-				slog.Warn("infrastructure: named scanner returned error, skipping",
-					"scanner", sc.AuditorName(),
+				slog.Warn("infrastructure: auditor returned error, skipping",
+					"auditor", sc.AuditorName(),
 					"error", err,
 				)
 				results[idx] = domain.ScanResult{
 					AuditorName: sc.AuditorName(),
 					Name:        sc.AuditorName(),
-					Description: "Scanner failed to execute",
+					Description: "Auditor failed to execute",
 					Problems:    []domain.Problem{},
 					Details:     map[string]any{"error": err.Error()},
 				}
@@ -60,7 +60,7 @@ func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.Aggr
 			}
 
 			results[idx] = *result
-		}(i, scanner)
+		}(i, auditor)
 	}
 
 	wg.Wait()
