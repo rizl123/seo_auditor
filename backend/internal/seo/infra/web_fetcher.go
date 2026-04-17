@@ -1,4 +1,4 @@
-package infrastructure
+package infra
 
 import (
 	"backend/internal/seo/domain"
@@ -33,18 +33,18 @@ func (s *WebFetcher) Scan(ctx context.Context, url *neturl.URL) (*domain.PageRep
 	start := time.Now()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
 	if err != nil {
-		slog.Error("infrastructure: failed to create http request", "url", neturl.QueryEscape(url.String()), "error", err)
+		slog.Error("infra: failed to create http request", "url", neturl.QueryEscape(url.String()), "error", err)
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("User-Agent", "SiteInspector/1.0 (Bot)")
 
 	res, err := s.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("infrastructure: http request failed: %w", err)
+		return nil, fmt.Errorf("infra: http request failed: %w", err)
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			slog.Error("infrastructure: failed to close response body", "error", err)
+			slog.Error("infra: failed to close response body", "error", err)
 		}
 	}()
 

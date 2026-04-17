@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"backend/internal/seo/domain"
-	"backend/internal/seo/infrastructure/auditors"
+	"backend/internal/seo/infra/auditors"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

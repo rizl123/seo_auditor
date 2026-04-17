@@ -1,4 +1,4 @@
-package infrastructure
+package auditors
 
 import (
 	"backend/internal/seo/domain"

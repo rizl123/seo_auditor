@@ -13,8 +13,8 @@ import (
 
 	seoDelivery "backend/internal/seo/delivery"
 	seoDomain "backend/internal/seo/domain"
-	seoInfra "backend/internal/seo/infrastructure"
-	seoAuditors "backend/internal/seo/infrastructure/auditors"
+	seoInfra "backend/internal/seo/infra"
+	"backend/internal/seo/infra/auditors"
 	seoUc "backend/internal/seo/usecase"
 )
 
@@ -42,7 +42,7 @@ func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.Scan
 			return auditor
 		}
 
-		return seoInfra.NewCachedAuditor(
+		return auditors.NewCachedAuditor(
 			auditor,
 			cacher,
 			cfg.CacheTTL,
@@ -51,8 +51,8 @@ func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.Scan
 	}
 
 	auditors := []seoDomain.Auditor{
-		wrapWithCache(seoAuditors.NewMetaAuditor()),
-		wrapWithCache(seoAuditors.NewPerformanceAuditor()),
+		wrapWithCache(auditors.NewMetaAuditor()),
+		wrapWithCache(auditors.NewPerformanceAuditor()),
 	}
 
 	runner := seoInfra.NewParallelRunner(fetcher, auditors...)

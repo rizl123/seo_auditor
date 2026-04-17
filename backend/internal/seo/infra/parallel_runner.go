@@ -1,4 +1,4 @@
-package infrastructure
+package infra
 
 import (
 	"backend/internal/seo/domain"
@@ -24,7 +24,7 @@ func NewParallelRunner(base domain.Fetcher, auditors ...domain.Auditor) *Paralle
 func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.AggregatedReport, error) {
 	pageReport, err := m.base.Scan(ctx, url)
 	if err != nil {
-		return nil, fmt.Errorf("infrastructure: base scan failed: %w", err)
+		return nil, fmt.Errorf("infra: base scan failed: %w", err)
 	}
 
 	results := make([]domain.ScanResult, len(m.auditors))
@@ -36,7 +36,7 @@ func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.Aggr
 			defer wg.Done()
 			defer func() {
 				if r := recover(); r != nil {
-					slog.Error("infrastructure: panic in auditor",
+					slog.Error("infra: panic in auditor",
 						"auditor", sc.AuditorName(),
 						"recover", r,
 					)
@@ -45,7 +45,7 @@ func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.Aggr
 
 			result, err := sc.Analyze(ctx, pageReport)
 			if err != nil {
-				slog.Warn("infrastructure: auditor returned error, skipping",
+				slog.Warn("infra: auditor returned error, skipping",
 					"auditor", sc.AuditorName(),
 					"error", err,
 				)
