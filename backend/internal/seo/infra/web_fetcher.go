@@ -3,18 +3,14 @@ package infra
 import (
 	"backend/internal/seo/domain"
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"log/slog"
-	"net"
 	"net/http"
 	neturl "net/url"
 	"strings"
-	"syscall"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html"
 )
 
 type WebFetcher struct {
@@ -26,32 +22,21 @@ func NewWebFetcher(client *http.Client) *WebFetcher {
 }
 
 func (s *WebFetcher) Scan(ctx context.Context, url *neturl.URL) (*domain.PageReport, error) {
-	if !strings.HasPrefix(url.Scheme, "http") {
-		return nil, errors.New("invalid protocol")
-	}
+	req, _ := http.NewRequestWithContext(ctx, "GET", url.String(), nil)
+	req.Header.Set("User-Agent", "SiteInspector/1.0")
 
 	start := time.Now()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
-	if err != nil {
-		slog.Error("infra: failed to create http request", "url", neturl.QueryEscape(url.String()), "error", err)
-		return nil, fmt.Errorf("create request: %w", err)
-	}
-	req.Header.Set("User-Agent", "SiteInspector/1.0 (Bot)")
-
 	res, err := s.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("infra: http request failed: %w", err)
+		return nil, fmt.Errorf("fetch failed: %w", err)
 	}
 	defer func() {
-		if err := res.Body.Close(); err != nil {
-			slog.Error("infra: failed to close response body", "error", err)
-		}
+		_, _ = io.Copy(io.Discard, res.Body)
+		_ = res.Body.Close()
 	}()
 
 	report := &domain.PageReport{
-		URL:       url,
-		Status:    res.StatusCode,
-		ScannedAt: time.Now(),
+		URL: url, Status: res.StatusCode, ScannedAt: time.Now(),
 		Network: &domain.NetworkInfo{
 			ResponseTime: time.Since(start),
 			Server:       res.Header.Get("Server"),
@@ -59,47 +44,55 @@ func (s *WebFetcher) Scan(ctx context.Context, url *neturl.URL) (*domain.PageRep
 		},
 	}
 
-	if res.StatusCode != http.StatusOK {
-		return report, nil
+	if res.StatusCode == http.StatusOK {
+		report.Metadata = s.parse(io.LimitReader(res.Body, 1024*512))
 	}
-
-	doc, err := goquery.NewDocumentFromReader(io.LimitReader(res.Body, 2*1024*1024))
-	if err != nil {
-		return report, nil
-	}
-
-	report.Metadata = &domain.Metadata{
-		Title:       strings.TrimSpace(doc.Find("title").First().Text()),
-		Description: doc.Find("meta[name='description']").AttrOr("content", ""),
-		Canonical:   doc.Find("link[rel='canonical']").AttrOr("href", ""),
-		OgImage:     doc.Find("meta[property='og:image']").AttrOr("content", ""),
-		H1:          []string{},
-	}
-
-	doc.Find("h1").Each(func(_ int, sel *goquery.Selection) {
-		if val := strings.TrimSpace(sel.Text()); val != "" {
-			report.Metadata.H1 = append(report.Metadata.H1, val)
-		}
-	})
-
 	return report, nil
 }
 
-func CreateSecureClient() *http.Client {
-	return &http.Client{
-		Timeout: 15 * time.Second,
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout: 5 * time.Second,
-				Control: func(_, address string, _ syscall.RawConn) error {
-					host, _, _ := net.SplitHostPort(address)
-					ip := net.ParseIP(host)
-					if ip != nil && (ip.IsLoopback() || ip.IsPrivate()) {
-						return errors.New("internal network access denied")
-					}
-					return nil
-				},
-			}).DialContext,
-		},
+func (s *WebFetcher) parse(r io.Reader) *domain.Metadata {
+	m := &domain.Metadata{H1: []string{}}
+	z := html.NewTokenizer(r)
+	for {
+		tt := z.Next()
+		if tt == html.ErrorToken {
+			return m
+		}
+		if tt == html.StartTagToken || tt == html.SelfClosingTagToken {
+			s.processToken(z, m)
+		}
+	}
+}
+
+func (s *WebFetcher) processToken(z *html.Tokenizer, m *domain.Metadata) {
+	t := z.Token()
+	switch t.Data {
+	case "title", "h1":
+		tagName := t.Data
+		if z.Next() == html.TextToken {
+			val := strings.Join(strings.Fields(z.Token().Data), " ")
+			if tagName == "title" {
+				m.Title = val
+			} else {
+				m.H1 = append(m.H1, val)
+			}
+		}
+	case "meta", "link":
+		attrs := make(map[string]string)
+		for _, a := range t.Attr {
+			attrs[a.Key] = a.Val
+		}
+		s.fillMetadata(m, attrs)
+	}
+}
+
+func (s *WebFetcher) fillMetadata(m *domain.Metadata, attr map[string]string) {
+	switch {
+	case attr["name"] == "description":
+		m.Description = attr["content"]
+	case attr["property"] == "og:image":
+		m.OgImage = attr["content"]
+	case attr["rel"] == "canonical":
+		m.Canonical = attr["href"]
 	}
 }

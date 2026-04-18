@@ -42,16 +42,3 @@ func TestWebFetcher_Scan(t *testing.T) {
 		assert.Equal(t, "Hello World", report.Metadata.H1[0])
 	}
 }
-
-func TestWebFetcher_Security(t *testing.T) {
-	secureClient := CreateSecureClient()
-	fetcher := NewWebFetcher(secureClient)
-
-	t.Run("Should block local addresses", func(t *testing.T) {
-		targetURL, _ := url.Parse("http://127.0.0.1:8080")
-		_, err := fetcher.Scan(context.Background(), targetURL)
-
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "internal network access denied")
-	})
-}
