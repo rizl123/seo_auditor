@@ -9,7 +9,7 @@ export function DetailItem({ item }: { item: IDetailItem }) {
     switch (item.type) {
       case "badge":
         return (
-          <span className="inline-block px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
+          <span className="inline-block px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-bold text-zinc-600 dark:text-zinc-400">
             {String(item.value)}
           </span>
         );
@@ -39,7 +39,7 @@ export function DetailItem({ item }: { item: IDetailItem }) {
 
   return (
     <div className="overflow-hidden">
-      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter mb-0.5">
+      <p className="text-xs font-bold text-zinc-400 uppercase tracking-tighter mb-0.5">
         {item.label}
       </p>
       <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">

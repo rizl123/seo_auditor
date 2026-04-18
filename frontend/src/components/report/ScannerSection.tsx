@@ -24,18 +24,18 @@ export function ScannerSection({ result }: ScannerSectionProps) {
               {result.name}
             </h3>
             {hasProblems ? (
-              <span className="text-[10px] bg-rose-500 text-white px-2 py-0.5 rounded-full font-bold">
+              <span className="text-xs bg-rose-500 text-white px-2 py-0.5 rounded-full font-bold">
                 {result.problems.length} ISSUES
               </span>
             ) : (
-              <span className="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">
+              <span className="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">
                 PASSED
               </span>
             )}
           </div>
           <p className="text-xs text-zinc-500 max-w-xl">{result.description}</p>
         </div>
-        <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-md">
+        <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 font-mono bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-md">
           <Clock size={12} />
           {new Date(result.scanned_at).toLocaleTimeString()}
         </div>
@@ -54,7 +54,7 @@ export function ScannerSection({ result }: ScannerSectionProps) {
           <div className="p-6 bg-zinc-50/50 dark:bg-zinc-900/20 border-t border-zinc-100 dark:border-zinc-800">
             {imageDetails.map((detail) => (
               <div key={detail.label} className="space-y-3">
-                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">
+                <p className="text-xs font-bold text-zinc-400 uppercase tracking-tighter">
                   {detail.label}
                 </p>
                 {detail.value && String(detail.value).trim() !== "" ? (

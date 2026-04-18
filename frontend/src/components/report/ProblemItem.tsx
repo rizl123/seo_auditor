@@ -20,7 +20,7 @@ export function ProblemItem({ problem }: { problem: Problem }) {
           <div className="grid md:grid-cols-2 gap-6">
             {problem.solutions?.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1.5">
+                <p className="text-xs font-bold text-zinc-400 uppercase flex items-center gap-1.5">
                   <Lightbulb size={12} className="text-amber-500" /> How to fix
                 </p>
                 <ul className="space-y-1.5">
@@ -38,7 +38,7 @@ export function ProblemItem({ problem }: { problem: Problem }) {
             )}
             {problem.resources?.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
                   Docs
                 </p>
                 <div className="flex flex-wrap gap-2">
