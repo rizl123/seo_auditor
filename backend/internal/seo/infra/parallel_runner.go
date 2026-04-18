@@ -54,7 +54,7 @@ func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.Aggr
 					Name:        sc.AuditorName(),
 					Description: "Auditor failed to execute",
 					Problems:    []domain.Problem{},
-					Details:     map[string]any{"error": err.Error()},
+					Details:     make([]domain.Detail, 0),
 				}
 				return
 			}

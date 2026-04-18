@@ -19,7 +19,7 @@ func (s *MetaAuditor) Analyze(_ context.Context, report *domain.PageReport) (*do
 		Name:        "Meta & SEO Tags",
 		Description: "Checks title, meta description, canonical URL, og:image " +
 			"and H1 headings for correctness and completeness.",
-		Details:   map[string]any{},
+		Details:   []domain.Detail{},
 		Problems:  []domain.Problem{},
 		ScannedAt: time.Now(),
 	}
@@ -30,11 +30,13 @@ func (s *MetaAuditor) Analyze(_ context.Context, report *domain.PageReport) (*do
 	}
 
 	meta := report.Metadata
-	result.Details["title"] = meta.Title
-	result.Details["description"] = meta.Description
-	result.Details["canonical"] = meta.Canonical
-	result.Details["og_image"] = meta.OgImage
-	result.Details["h1_count"] = len(meta.H1)
+	result.Details = append(result.Details,
+		domain.Detail{Label: "Title", Value: meta.Title, Type: domain.DetailTypeText},
+		domain.Detail{Label: "Description", Value: meta.Description, Type: domain.DetailTypeText},
+		domain.Detail{Label: "Canonical", Value: meta.Canonical, Type: domain.DetailTypeURL},
+		domain.Detail{Label: "OG Image", Value: meta.OgImage, Type: domain.DetailTypeImage},
+		domain.Detail{Label: "H1 Count", Value: len(meta.H1), Type: domain.DetailTypeNumber},
+	)
 
 	s.checkTitle(result, meta.Title)
 	s.checkDescription(result, meta.Description)
@@ -155,7 +157,10 @@ func (s *MetaAuditor) problemMissingCanonical() domain.Problem {
 		Description: "No canonical URL specified. Search engines may index duplicate URLs.",
 		Solutions:   []string{"Add <link rel=\"canonical\">"},
 		Resources: []domain.Resource{
-			{Title: "Google: Canonical tag", URL: "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls"},
+			{
+				Title: "Google: Canonical tag",
+				URL:   "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
+			},
 			{Title: "Moz: Canonical URL", URL: "https://moz.com/learn/seo/canonicalization"},
 		},
 	}

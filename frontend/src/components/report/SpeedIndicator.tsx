@@ -1,23 +1,6 @@
-import type { ReactNode } from "react";
-
-export const Card = ({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) => (
-  <div
-    className={`bg-card border border-border-custom rounded-3xl shadow-sm overflow-hidden ${className}`}
-  >
-    {children}
-  </div>
-);
-
-export const SpeedIndicator = ({ ms }: { ms: number }) => {
+export function SpeedIndicator({ ms }: { ms: number }) {
   const isFast = ms < 800;
   const isAverage = ms >= 800 && ms < 1500;
-
   const percentage = Math.max(5, Math.min(100, 100 - (ms / 3000) * 100));
 
   return (
@@ -51,4 +34,4 @@ export const SpeedIndicator = ({ ms }: { ms: number }) => {
       </span>
     </div>
   );
-};
+}

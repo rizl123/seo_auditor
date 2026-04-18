@@ -5,6 +5,23 @@ import (
 	"time"
 )
 
+type DetailType string
+
+const (
+	DetailTypeText     DetailType = "text"
+	DetailTypeNumber   DetailType = "number"
+	DetailTypeDuration DetailType = "duration_ms"
+	DetailTypeURL      DetailType = "url"
+	DetailTypeImage    DetailType = "image"
+	DetailTypeBadge    DetailType = "badge"
+)
+
+type Detail struct {
+	Label string
+	Value any
+	Type  DetailType
+}
+
 type PageReport struct {
 	URL       *url.URL
 	Status    int
@@ -44,7 +61,7 @@ type ScanResult struct {
 	AuditorName string
 	Name        string
 	Description string
-	Details     map[string]any
+	Details     []Detail
 	Problems    []Problem
 	IsCached    bool
 	ScannedAt   time.Time

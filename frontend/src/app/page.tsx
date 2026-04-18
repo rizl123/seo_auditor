@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Globe, Search } from "lucide-react";
+import { AlertCircle, Search } from "lucide-react";
 import { useState } from "react";
 import { Report } from "@/components/report/Report";
 import { SearchForm } from "@/components/SearchForm";

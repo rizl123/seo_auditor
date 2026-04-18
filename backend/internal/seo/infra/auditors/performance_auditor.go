@@ -25,7 +25,7 @@ func (s *PerformanceAuditor) Analyze(_ context.Context, report *domain.PageRepor
 		Name:        "Performance & HTTP",
 		Description: "Analyses server response time, HTTP status code and content type " +
 			"to surface basic performance and configuration issues.",
-		Details:   map[string]any{},
+		Details:   []domain.Detail{},
 		Problems:  []domain.Problem{},
 		ScannedAt: time.Now(),
 	}
@@ -35,10 +35,12 @@ func (s *PerformanceAuditor) Analyze(_ context.Context, report *domain.PageRepor
 	}
 
 	net := report.Network
-	result.Details["response_time_ms"] = net.ResponseTime.Milliseconds()
-	result.Details["status"] = report.Status
-	result.Details["server"] = net.Server
-	result.Details["content_type"] = net.ContentType
+	result.Details = append(result.Details,
+		domain.Detail{Label: "Response Time", Value: net.ResponseTime.Milliseconds(), Type: domain.DetailTypeDuration},
+		domain.Detail{Label: "Status Code", Value: report.Status, Type: domain.DetailTypeBadge},
+		domain.Detail{Label: "Server Header", Value: net.Server, Type: domain.DetailTypeText},
+		domain.Detail{Label: "Content Type", Value: net.ContentType, Type: domain.DetailTypeText},
+	)
 
 	s.checkResponseTime(result, net.ResponseTime)
 	s.checkStatusAndType(result, report)
