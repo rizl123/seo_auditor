@@ -11,6 +11,7 @@ interface ScannerSectionProps {
 
 export function ScannerSection({ result }: ScannerSectionProps) {
   const hasProblems = result.problems && result.problems.length > 0;
+
   const imageDetails = result.details.filter((d) => d.type === "image");
   const regularDetails = result.details.filter((d) => d.type !== "image");
 
@@ -56,16 +57,22 @@ export function ScannerSection({ result }: ScannerSectionProps) {
                 <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">
                   {detail.label}
                 </p>
-                <div className="relative border border-border-custom rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 inline-block shadow-sm">
-                  <Image
-                    src={String(detail.value)}
-                    alt={detail.label}
-                    width={600}
-                    height={315}
-                    unoptimized
-                    className="max-w-full h-auto max-h-64 object-contain"
-                  />
-                </div>
+                {detail.value && String(detail.value).trim() !== "" ? (
+                  <div className="relative border border-border-custom rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 inline-block shadow-sm">
+                    <Image
+                      src={String(detail.value)}
+                      alt={detail.label}
+                      width={600}
+                      height={315}
+                      unoptimized
+                      className="max-w-full h-auto max-h-64 object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="text-sm font-semibold">
+                    <span className="text-zinc-300 italic">n/a</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
