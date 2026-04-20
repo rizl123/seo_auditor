@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
 type ScanHandler struct {
@@ -16,7 +18,7 @@ func NewScanHandler(u *usecase.ScanUsecase) *ScanHandler {
 }
 
 type ScanInput struct {
-	URL string `query:"url" json:"url" doc:"URL to scan" required:"true"`
+	URL string `query:"url" format:"uri" doc:"URL to scan" required:"true"`
 }
 
 type ScanOutput struct {
@@ -25,13 +27,20 @@ type ScanOutput struct {
 
 func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOutput, error) {
 	url, err := url.Parse(input.URL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid url: %w", err)
+
+	if err != nil || url.Scheme == "" || url.Host == "" {
+		return nil, huma.Error400BadRequest(
+			"Invalid URL provided",
+			fmt.Errorf("url must start with http:// or https:// and contain a host"),
+		)
 	}
 
 	report, err := h.usecase.Execute(ctx, url)
 	if err != nil {
-		return nil, fmt.Errorf("delivery: handle scan: %w", err)
+		return nil, huma.Error500InternalServerError(
+			"Failed to process scan request",
+			fmt.Errorf("please try again later"),
+		)
 	}
 
 	return &ScanOutput{Body: ToAggregatedReportDTO(report)}, nil

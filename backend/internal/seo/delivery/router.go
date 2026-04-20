@@ -13,5 +13,6 @@ func RegisterRoutes(api huma.API, handler *ScanHandler) {
 		Path:        "/api/scan",
 		Summary:     "Scan page and get report",
 		Tags:        []string{"scanner"},
+		Errors:      []int{http.StatusBadRequest, http.StatusInternalServerError},
 	}, handler.HandleScan)
 }
