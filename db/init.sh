@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    CREATE USER logto WITH ENCRYPTED PASSWORD '$AUTH_DB_PASSWORD' CREATEROLE;
+    CREATE DATABASE logto;
+    GRANT ALL PRIVILEGES ON DATABASE logto TO logto;
+    ALTER DATABASE logto OWNER TO logto;
+EOSQL

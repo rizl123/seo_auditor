@@ -1,26 +1,24 @@
 volumes:
   redis_data:
+  postgres_data:
 
 services:
   nginx:
     build: ./nginx
     ports: ["80:80"]
+    networks:
+      default:
+        aliases:
+          - seo.localhost
+          - auth.seo.localhost
+          - admin.seo.localhost
     depends_on:
-      swagger:
-        condition: service_started
-        required: false
-      backend:
-        condition: service_started
-        required: false
-      backend_dev:
-        condition: service_started
-        required: false
-      frontend:
-        condition: service_started
-        required: false
-      frontend_dev:
-        condition: service_started
-        required: false
+      swagger: { condition: service_started, required: false }
+      backend: { condition: service_started, required: false }
+      backend_dev: { condition: service_started, required: false }
+      frontend: { condition: service_started, required: false }
+      frontend_dev: { condition: service_started, required: false }
+      auth: { condition: service_started }
 
   swagger:
     image: swaggerapi/swagger-ui:v5.32.1
@@ -41,27 +39,51 @@ services:
     depends_on: [redis]
     profiles: [back_dev]
     volumes: ["./backend/internal:/app/internal:ro"]
-    networks:
-      default:
-        aliases:
-          - backend
+    networks: { default: { aliases: [backend] } }
 
   redis:
     image: redis:7-alpine
-    volumes:
-      - redis_data:/data
+    volumes: ["redis_data:/data"]
 
   frontend:
     build: ./frontend
     profiles: [prod, back_dev]
+    env_file: .env.frontend.local
+    environment:
+      BASE_URL: "http://seo.localhost"
+      OIDC_URL: "http://auth.seo.localhost"
+      API_URL: "http://seo.localhost"
 
   frontend_dev:
     build:
       context: ./frontend
       dockerfile: ./Dockerfile.dev
     profiles: [front_dev]
+    env_file: .env.frontend.local
+    environment:
+      BASE_URL: "http://seo.localhost"
+      OIDC_URL: "http://auth.seo.localhost"
+      API_URL: "http://seo.localhost"
     volumes: ["./frontend/src:/app/src:ro"]
-    networks:
-      default:
-        aliases:
-          - frontend
+    networks: { default: { aliases: [frontend] } }
+
+  db:
+    build: ./db
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    environment:
+      # API_DB_PASSWORD: ${API_DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
+
+  auth:
+    image: svhd/logto:latest
+    entrypoint: ["sh", "-c", "npm run cli db seed -- --swe && npm start"]
+    depends_on:
+      redis: { condition: service_started }
+      db: { condition: service_healthy }
+    environment:
+      TRUST_PROXY_HEADER: "1"
+      DB_URL: postgres://logto:${AUTH_DB_PASSWORD}@db:5432/logto
+      REDIS_URL: redis://redis:6379
+      ENDPOINT: http://auth.seo.localhost
+      ADMIN_ENDPOINT: http://admin.seo.localhost

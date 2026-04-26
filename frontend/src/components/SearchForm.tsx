@@ -15,11 +15,6 @@ export function SearchForm({ onAnalyze, loading }: SearchFormProps) {
 
   return (
     <div className="py-20 text-center">
-      <h1 className="text-4xl font-bold mb-4 tracking-tight">SEO Analyzer</h1>
-      <p className="text-zinc-500 mb-10 text-lg">
-        Enter a URL to check your website's health.
-      </p>
-
       <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto">
         <div className="flex items-center bg-card border border-border-custom rounded-2xl p-2 pl-5 transition-all focus-within:ring-4 focus-within:ring-accent/10 focus-within:border-accent">
           <Globe size={20} className="text-zinc-400 shrink-0" />
