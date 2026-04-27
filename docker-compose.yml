@@ -4,14 +4,15 @@ volumes:
 
 services:
   nginx:
-    build: ./nginx
-    ports: ["80:80"]
+    image: nginx:1.28.3-alpine
+    ports: ["80:80", "443:443"]
     networks:
       default:
         aliases:
-          - seo.localhost
-          - auth.seo.localhost
-          - admin.seo.localhost
+          - ${BASE_DOMAIN}
+          - ${API_DOMAIN}
+          - ${AUTH_DOMAIN}
+          - ${ADMIN_DOMAIN}
     depends_on:
       swagger: { condition: service_started, required: false }
       backend: { condition: service_started, required: false }
@@ -19,6 +20,14 @@ services:
       frontend: { condition: service_started, required: false }
       frontend_dev: { condition: service_started, required: false }
       auth: { condition: service_started }
+    environment:
+      - BASE_DOMAIN=${BASE_DOMAIN}
+      - API_DOMAIN=${API_DOMAIN}
+      - AUTH_DOMAIN=${AUTH_DOMAIN}
+      - ADMIN_DOMAIN=${ADMIN_DOMAIN}
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+    volumes:
+      - "./nginx/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro"
 
   swagger:
     image: swaggerapi/swagger-ui:v5.32.1
@@ -50,9 +59,9 @@ services:
     profiles: [prod, back_dev]
     env_file: .env.frontend.local
     environment:
-      BASE_URL: "http://seo.localhost"
-      OIDC_URL: "http://auth.seo.localhost"
-      API_URL: "http://seo.localhost"
+      BASE_URL: "http://${BASE_DOMAIN}"
+      OIDC_URL: "http://${AUTH_DOMAIN}"
+      API_URL: "http://${API_DOMAIN}"
 
   frontend_dev:
     build:
@@ -61,19 +70,28 @@ services:
     profiles: [front_dev]
     env_file: .env.frontend.local
     environment:
-      BASE_URL: "http://seo.localhost"
-      OIDC_URL: "http://auth.seo.localhost"
-      API_URL: "http://seo.localhost"
+      BASE_URL: "http://${BASE_DOMAIN}"
+      OIDC_URL: "http://${AUTH_DOMAIN}"
+      API_URL: "http://${API_DOMAIN}"
     volumes: ["./frontend/src:/app/src:ro"]
     networks: { default: { aliases: [frontend] } }
 
   db:
-    build: ./db
-    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    image: postgres:16-alpine
+    healthcheck:
+      test: pg_isready -U postgres
+      timeout: 5s
+      retries: 5
+      interval: 5s
     environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
       # API_DB_PASSWORD: ${API_DB_PASSWORD}
       POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD}
       AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
+    volumes:
+      - "postgres_data:/var/lib/postgresql/data"
+      - "./db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro"
 
   auth:
     image: svhd/logto:latest
@@ -85,5 +103,5 @@ services:
       TRUST_PROXY_HEADER: "1"
       DB_URL: postgres://logto:${AUTH_DB_PASSWORD}@db:5432/logto
       REDIS_URL: redis://redis:6379
-      ENDPOINT: http://auth.seo.localhost
-      ADMIN_ENDPOINT: http://admin.seo.localhost
+      ENDPOINT: http://${AUTH_DOMAIN}
+      ADMIN_ENDPOINT: http://${ADMIN_DOMAIN}
