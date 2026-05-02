@@ -2,7 +2,7 @@
 
 import { LogOut, ShieldCheck, User } from "lucide-react";
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth/session";
 
 export async function Navbar() {
   const user = await getSession();

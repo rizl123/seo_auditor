@@ -1,7 +1,7 @@
 import { Clock } from "lucide-react";
 import Image from "next/image";
+import { Card } from "@/components/Card";
 import type { ScanResult } from "@/types/report";
-import { Card } from "./Card";
 import { DetailItem } from "./DetailItem";
 import { ProblemItem } from "./ProblemItem";
 

@@ -79,7 +79,7 @@ docker compose --profile front_dev up
 The application uses several environment variables for configuration. Below is a breakdown of the variables found in the `.env`, `.env.backend`, and `.env.frontend.local` files.
 
 #### 1. Database & Authentication (`.env`)
-| Variable | Description | Default / Example |
+| Variable | Description | Default |
 | :--- | :--- | :--- |
 | `DB_ROOT_PASSWORD` | Root password for the database instance | *Required* |
 | `AUTH_DB_PASSWORD` | Database user password for the Auth service | *Required* |
@@ -94,10 +94,16 @@ The application uses several environment variables for configuration. Below is a
 | `CACHE_BREAK_DURATION` | Cooldown period between cache refreshes | `1m` |
 
 #### 3. Frontend & OIDC (`.env.frontend.local`)
-| Variable | Description | Default / Example |
+| Variable | Description | Default |
 | :--- | :--- | :--- |
 | `OIDC_ID` | OpenID Connect Client ID | *Required* |
 | `OIDC_SECRET` | OpenID Connect Client Secret | *Required* |
+| `STATE_COOKIE` | Name of the cookie used to store the OIDC `state` parameter | `st` |
+| `PKCE_COOKIE` | Name of the cookie used to store the PKCE code verifier | `cv` |
+| `SESSION_COOKIE` | Name of the main session cookie (stores ID Token) | `app_session` |
+| `SESSION_COOKIE_AGE` | Expiration time for the session cookie in seconds | `86400` (24h) |
+| `PKCE_COOKIE_AGE` | Expiration time for auth-related cookies (state/pkce) in seconds | `600` (10m) |
+| `COOKIE_INSECURE` | Set to `true` to disable Secure flag for cookies (local dev only) | `false` (Secure) |
 
 
 ---

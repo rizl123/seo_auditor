@@ -1,4 +1,4 @@
-import { API_URL } from "@/config/env";
+import { API_URL } from "@/config/urls";
 import type { ApiErrorResponse } from "@/types/api";
 import type { PageReport } from "@/types/report";
 
