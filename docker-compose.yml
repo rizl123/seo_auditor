@@ -60,7 +60,7 @@ services:
     env_file: .env.frontend.local
     environment:
       BASE_URL: "http://${BASE_DOMAIN}"
-      OIDC_URL: "http://${AUTH_DOMAIN}"
+      OIDC_URL: "http://${AUTH_DOMAIN}/oidc"
       API_URL: "http://${API_DOMAIN}"
 
   frontend_dev:
@@ -71,7 +71,7 @@ services:
     env_file: .env.frontend.local
     environment:
       BASE_URL: "http://${BASE_DOMAIN}"
-      OIDC_URL: "http://${AUTH_DOMAIN}"
+      OIDC_URL: "http://${AUTH_DOMAIN}/oidc"
       API_URL: "http://${API_DOMAIN}"
     volumes: ["./frontend/src:/app/src:ro"]
     networks: { default: { aliases: [frontend] } }

@@ -14,7 +14,7 @@ export async function getSession(): Promise<AuthUserInfo | null> {
   try {
     const JWKS = jose.createRemoteJWKSet(new URL(`${oidcConfig.ISSUER}/jwks`));
     const { payload } = await jose.jwtVerify(idToken, JWKS, {
-      issuer: oidcConfig.ISSUER,
+      issuer: oidcConfig.ISSUER.toString(),
       audience: oidcConfig.CLIENT_ID,
     });
     return payload as AuthUserInfo;

@@ -1,4 +1,5 @@
 import { ArrowRight, Globe, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface SearchFormProps {
   onAnalyze: (url: string) => void;
@@ -6,6 +7,8 @@ interface SearchFormProps {
 }
 
 export function SearchForm({ onAnalyze, loading }: SearchFormProps) {
+  const t = useTranslations("Search");
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -33,7 +36,7 @@ export function SearchForm({ onAnalyze, loading }: SearchFormProps) {
             {loading ? (
               <Loader2 className="animate-spin size={20}" />
             ) : (
-              "Analyze"
+              t("button")
             )}
             {!loading && <ArrowRight size={18} />}
           </button>

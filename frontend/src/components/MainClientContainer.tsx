@@ -2,10 +2,10 @@
 
 import { AlertCircle } from "lucide-react";
 import { useState } from "react";
-import { scanURL } from "@/app/actions";
 import { Report } from "@/components/report/Report";
 import { SearchForm } from "@/components/SearchForm";
 import type { PageReport } from "@/types/report";
+import { scanURL } from "./actions";
 
 export function MainClientContainer() {
   const [result, setResult] = useState<PageReport | null>(null);

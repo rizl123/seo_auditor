@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { ArrowLeft } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/Card";
 
 interface ErrorCardProps {
@@ -11,7 +12,7 @@ interface ErrorCardProps {
   actionHref?: string;
 }
 
-export function ErrorCard({
+export async function ErrorCard({
   title,
   description,
   icon: Icon,
@@ -19,6 +20,8 @@ export function ErrorCard({
   actionLabel,
   actionHref,
 }: ErrorCardProps) {
+  const t = await getTranslations("AuthErrors");
+
   const themes = {
     amber: {
       border: "border-t-amber-500",
@@ -38,7 +41,7 @@ export function ErrorCard({
   const theme = themes[variant];
 
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
+    <main className="bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <Card className={`border-t-2 ${theme.border} shadow-lg`}>
           <div className="p-8 flex flex-col items-center text-center">
@@ -72,7 +75,7 @@ export function ErrorCard({
                 className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-xl font-bold text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
               >
                 <ArrowLeft size={16} />
-                Back to Home
+                {t("back")}
               </a>
             </div>
           </div>

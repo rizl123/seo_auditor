@@ -1,0 +1,22 @@
+{
+  "Navbar": {
+    "signIn": "Sign In",
+    "exit": "Exit"
+  },
+  "Search": {
+    "button": "Audit"
+  },
+  "AuthErrors": {
+    "back": "Back to Home",
+    "csrf": {
+      "title": "Security check failed",
+      "description": "The request state is invalid or has expired.",
+      "action": "Try Again"
+    },
+    "unknown": {
+      "title": "Something went wrong",
+      "description": "We encountered an unexpected error while processing your request. This could be due to a temporary connection issue or a system glitch.",
+      "action": "Try Again"
+    }
+  }
+}

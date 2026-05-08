@@ -32,7 +32,7 @@ export async function getLoginUrl() {
   const state = oidc.randomState();
 
   const authorizationUrl = oidc.buildAuthorizationUrl(config, {
-    redirect_uri: oidcConfig.REDIRECT_URI,
+    redirect_uri: oidcConfig.REDIRECT_URI.toString(),
     scope: oidcConfig.SCOPE,
     code_challenge: await oidc.calculatePKCECodeChallenge(codeVerifier),
     code_challenge_method: "S256",
@@ -56,7 +56,7 @@ export async function exchangeCodeForTokens(
       expectedState: expectedState,
     },
     {
-      redirect_uri: oidcConfig.REDIRECT_URI,
+      redirect_uri: oidcConfig.REDIRECT_URI.toString(),
     },
     options,
   );
@@ -66,6 +66,6 @@ export async function getLogoutUrl(idToken: string) {
   const config = await getOidcConfig();
   return oidc.buildEndSessionUrl(config, {
     id_token_hint: idToken,
-    post_logout_redirect_uri: oidcConfig.POST_LOGOUT_REDIRECT_URI,
+    post_logout_redirect_uri: oidcConfig.POST_LOGOUT_REDIRECT_URI.toString(),
   });
 }
