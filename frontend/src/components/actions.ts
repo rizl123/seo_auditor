@@ -1,27 +1,51 @@
+"use server";
+
+import { getTranslations } from "next-intl/server";
 import { API_URL } from "@/config/urls";
-import type { ApiErrorResponse } from "@/types/api";
+import type { ApiErrorItem, ApiErrorResponse } from "@/types/api";
 import type { PageReport } from "@/types/report";
 
-type ScanReturnType = { error?: string; data?: PageReport };
+export type ScanResponse =
+  | { detail: string; errors?: ApiErrorItem[]; success: false }
+  | { data: PageReport; success: true };
 
-export async function scanURL(url: string): Promise<ScanReturnType> {
-  if (!url) return { error: "URL is required" };
+export async function scanURL(url: string): Promise<ScanResponse> {
+  const t = await getTranslations("ScanErrors");
+
+  if (!url) {
+    return {
+      detail: t("urlRequired"),
+      success: false,
+    };
+  }
 
   try {
     const apiUrl = `${API_URL}/api/scan?url=${encodeURIComponent(url)}`;
-    const res = await fetch(apiUrl, { cache: "no-store" });
+
+    const res = await fetch(apiUrl, {
+      method: "GET",
+      cache: "no-store",
+    });
+
     const data = await res.json();
 
     if (!res.ok) {
       const apiError = data as ApiErrorResponse;
       return {
-        error:
-          apiError.errors?.[0]?.message || apiError.detail || "Scan failed",
+        detail: apiError.detail || t("defaultError"),
+        errors: apiError.errors,
+        success: false,
       };
     }
 
-    return { data: data as PageReport };
+    return {
+      data: data as PageReport,
+      success: true,
+    };
   } catch {
-    return { error: "Failed to connect to the server" };
+    return {
+      detail: t("connectionFailed"),
+      success: false,
+    };
   }
 }

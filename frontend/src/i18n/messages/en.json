@@ -4,7 +4,8 @@
     "exit": "Exit"
   },
   "Search": {
-    "button": "Audit"
+    "button": "Audit",
+    "placeholder": "https://yourwebsite.com"
   },
   "AuthErrors": {
     "back": "Back to Home",
@@ -18,5 +19,19 @@
       "description": "We encountered an unexpected error while processing your request. This could be due to a temporary connection issue or a system glitch.",
       "action": "Try Again"
     }
+  },
+  "ScanErrors": {
+    "urlRequired": "Please provide a valid URL to scan.",
+    "defaultError": "An unexpected error occurred during the scan.",
+    "connectionFailed": "Could not connect to the scanning server. Please try again later."
+  },
+  "Report": {
+    "issues": "{count, plural, =1 {1 ISSUE} other {# ISSUES}}",
+    "passed": "PASSED",
+    "howToFix": "How to fix",
+    "docs": "Docs",
+    "noData": "n/a",
+    "scannedAt": "Scanned at {time, time, short}",
+    "duration": "{value, number} ms"
   }
 }

@@ -1,16 +1,10 @@
-export type DetailType =
-  | "text"
-  | "number"
-  | "duration_ms"
-  | "url"
-  | "image"
-  | "badge";
-
-export interface DetailItem {
-  label: string;
-  value: unknown;
-  type: DetailType;
-}
+export type DetailItem =
+  | { label: string; type: "text"; value: string }
+  | { label: string; type: "number"; value: number }
+  | { label: string; type: "duration_ms"; value: number }
+  | { label: string; type: "url"; value: string }
+  | { label: string; type: "image"; value: string }
+  | { label: string; type: "badge"; value: string };
 
 export interface Resource {
   title: string;

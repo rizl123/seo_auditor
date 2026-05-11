@@ -1,7 +1,10 @@
 import { AlertTriangle, ExternalLink, Lightbulb } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Problem } from "@/types/report";
 
 export function ProblemItem({ problem }: { problem: Problem }) {
+  const t = useTranslations("Report");
+
   return (
     <div className="p-6">
       <div className="flex items-start gap-4">
@@ -21,7 +24,8 @@ export function ProblemItem({ problem }: { problem: Problem }) {
             {problem.solutions?.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-bold text-zinc-400 uppercase flex items-center gap-1.5">
-                  <Lightbulb size={12} className="text-amber-500" /> How to fix
+                  <Lightbulb size={12} className="text-amber-500" />
+                  {t("howToFix")}
                 </p>
                 <ul className="space-y-1.5">
                   {problem.solutions.map((s) => (
@@ -39,7 +43,7 @@ export function ProblemItem({ problem }: { problem: Problem }) {
             {problem.resources?.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                  Docs
+                  {t("docs")}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {problem.resources.map((res) => (

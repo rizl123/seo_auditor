@@ -4,46 +4,30 @@ import { AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { Report } from "@/components/report/Report";
 import { SearchForm } from "@/components/SearchForm";
-import type { PageReport } from "@/types/report";
-import { scanURL } from "./actions";
+import { type ScanResponse, scanURL } from "./actions";
 
 export function MainClientContainer() {
-  const [result, setResult] = useState<PageReport | null>(null);
+  const [response, setResponse] = useState<ScanResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleAnalyze = async (url: string) => {
     setLoading(true);
-    setError(null);
-    setResult(null);
+    setResponse(null);
 
-    const response = await scanURL(url);
-
-    if (response.error) {
-      setError(response.error);
-    } else if (response.data) {
-      setResult(response.data);
+    try {
+      const response = await scanURL(url);
+      setResponse(response);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
     <>
       <SearchForm onAnalyze={handleAnalyze} loading={loading} />
 
-      {error && (
-        <div className="max-w-2xl mx-auto p-4 mb-8 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl flex items-start gap-3 animate-in fade-in zoom-in duration-300">
-          <AlertCircle size={20} className="mt-0.5 shrink-0" />
-          <div className="flex flex-col gap-1">
-            <span className="font-semibold text-sm">Scan Error</span>
-            <span className="text-sm opacity-90">{error}</span>
-          </div>
-        </div>
-      )}
-
       {loading && <Skeletons />}
-      {result && <Report data={result} />}
+      {response && <ResponseComponent response={response} />}
     </>
   );
 }
@@ -57,6 +41,28 @@ function Skeletons() {
           <div className="h-64 bg-zinc-100 dark:bg-zinc-900 rounded-3xl" />
         </div>
       ))}
+    </div>
+  );
+}
+
+function ResponseComponent({ response }: { response: ScanResponse }) {
+  if (response.success) {
+    return <Report data={response.data} />;
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto p-4 mb-8 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl flex items-start gap-3 animate-in fade-in zoom-in duration-300">
+      <AlertCircle size={20} className="mt-0.5 shrink-0" />
+      <div className="flex flex-col gap-1">
+        <p className="font-semibold text-sm">{response.detail}</p>
+        <ol>
+          {response.errors?.map((error) => (
+            <li key={error.message} className="text-sm opacity-90">
+              {error.message}
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }

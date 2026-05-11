@@ -25,7 +25,7 @@ export function SearchForm({ onAnalyze, loading }: SearchFormProps) {
             name="url"
             type="url"
             required
-            placeholder="https://yourwebsite.com"
+            placeholder={t("placeholder")}
             className="w-full px-4 py-3 bg-transparent outline-none text-base placeholder:text-zinc-400"
           />
           <button

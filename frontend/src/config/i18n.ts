@@ -6,6 +6,6 @@ export const locales = [
   },
   {
     short: "ru" as const,
-    full: "Russian" as const,
+    full: "Русский" as const,
   },
 ];

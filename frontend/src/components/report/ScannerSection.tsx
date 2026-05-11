@@ -1,8 +1,9 @@
 import { Clock } from "lucide-react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { Card } from "@/components/Card";
 import type { ScanResult } from "@/types/report";
-import { DetailItem } from "./DetailItem";
+import { DetailItemComponent } from "./DetailItemComponent";
 import { ProblemItem } from "./ProblemItem";
 
 interface ScannerSectionProps {
@@ -10,6 +11,7 @@ interface ScannerSectionProps {
 }
 
 export function ScannerSection({ result }: ScannerSectionProps) {
+  const t = useTranslations("Report");
   const hasProblems = result.problems && result.problems.length > 0;
 
   const imageDetails = result.details.filter((d) => d.type === "image");
@@ -25,11 +27,11 @@ export function ScannerSection({ result }: ScannerSectionProps) {
             </h3>
             {hasProblems ? (
               <span className="text-xs bg-rose-500 text-white px-2 py-0.5 rounded-full font-bold">
-                {result.problems.length} ISSUES
+                {t("issues", { count: result.problems.length })}
               </span>
             ) : (
               <span className="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">
-                PASSED
+                {t("passed")}
               </span>
             )}
           </div>
@@ -37,7 +39,7 @@ export function ScannerSection({ result }: ScannerSectionProps) {
         </div>
         <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 font-mono bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-md">
           <Clock size={12} />
-          {new Date(result.scanned_at).toLocaleTimeString()}
+          {t("scannedAt", { time: new Date(result.scanned_at) })}
         </div>
       </div>
 
@@ -45,7 +47,7 @@ export function ScannerSection({ result }: ScannerSectionProps) {
         {regularDetails.length > 0 && (
           <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 bg-zinc-50/30 dark:bg-zinc-900/10">
             {regularDetails.map((detail) => (
-              <DetailItem key={detail.label} item={detail} />
+              <DetailItemComponent key={detail.label} item={detail} />
             ))}
           </div>
         )}
@@ -57,10 +59,10 @@ export function ScannerSection({ result }: ScannerSectionProps) {
                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-tighter">
                   {detail.label}
                 </p>
-                {detail.value && String(detail.value).trim() !== "" ? (
+                {detail.value && detail.value.trim() !== "" ? (
                   <div className="relative border border-border-custom rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 inline-block shadow-sm">
                     <Image
-                      src={String(detail.value)}
+                      src={detail.value}
                       alt={detail.label}
                       width={600}
                       height={315}
@@ -70,7 +72,7 @@ export function ScannerSection({ result }: ScannerSectionProps) {
                   </div>
                 ) : (
                   <div className="text-sm font-semibold">
-                    <span className="text-zinc-300 italic">n/a</span>
+                    <span className="text-zinc-300 italic">{t("noData")}</span>
                   </div>
                 )}
               </div>
