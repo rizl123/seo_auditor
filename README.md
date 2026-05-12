@@ -8,7 +8,7 @@ A high-performance, containerized solution for instant website SEO auditing. Thi
 
 The project follows a modular microservices approach with a focus on **Clean Architecture**, **Security**, and **Resilience**.
 
-- **Frontend**: Next.js 15 (App Router) using **Server Actions** for secure API communication and **Tailwind CSS 4**.
+- **Frontend**: Next.js 15 (App Router) using **Server Actions** for secure API communication, **Tailwind CSS 4**, and **next-intl** for full i18n support.
 - **Backend**: Go 1.26 using [Huma v2](https://huma.rocks/) for RFC 7807-compliant error handling and OpenAPI 3.0 specs.
 - **Authentication**: Integrated **Logto (OIDC)** with a dedicated PostgreSQL database.
 - **Audit Engine**: A pluggable **Auditor** system that runs Meta and Performance scans in parallel.
@@ -25,11 +25,13 @@ The project follows a modular microservices approach with a focus on **Clean Arc
 │   ├── seo             # Domain, UseCases, Infra (Auditors, Fetchers), Delivery
 │   └── shared/         # Resilient Caching and Redis logic
 ├── frontend/src        # Next.js 15 Application
-│   ├── app             # Server Actions, OIDC Routes (Login/Callback), and Pages
-│   ├── components      # Modular UI (MainClientContainer, Navbar, Report)
-│   └── lib             # OIDC and JWT (jose) utility logic
+│   ├── app             # Localized routing and Auth handlers
+│   │   └── [locale]    # Dynamic segment for i18n
+│   ├── components      # Modular UI
+│   ├── i18n            # Dictionaries and i18n configuration
+│   └── lib             # OIDC, JWT and Session logic
 ├── db                  # Postgres initialization scripts for Logto
-├── nginx               # Reverse Proxy with OIDC buffer optimizations
+├── nginx               # Reverse Proxy Config
 └── .github/workflows   # CI/CD (Go race detector, Biome linting, Docker builds)
 ```
 
@@ -111,6 +113,7 @@ The application uses several environment variables for configuration. Below is a
 ## 🔒 Security & Resilience
 
 - **OIDC Authentication**: Secure session management via Logto; frontend implements JWT verification using `jose` and `openid-client`.
+- **Internationalization**: Localized routing with middleware-based locale detection and `[locale]` path prefixing.
 - **SSRF Protection**: The Go `Fetcher` utilizes a custom `http.Client` with pre-dial DNS resolution to block **RFC 1918** private ranges and loopback addresses.
 - **Streaming Parser**: Uses a native `html.Tokenizer` to reduce memory footprint and prevent DoS via massive HTML payloads (512KB limit).
 - **Circuit Breaker**: If Redis is unreachable, the `CachedAuditor` enters an "Open" state, bypassing the cache to maintain API availability.
@@ -152,8 +155,8 @@ GitHub Actions are triggered on every push to `main`:
 
 The API is self-documenting. Huma v2 generates the OpenAPI 3.0 schema dynamically.
 
-- **JSON Spec**: `http://seo.localhost/api/openapi`
-- **Interactive UI**: `http://seo.localhost/swagger/`
+- **JSON Spec**: `[http://seo.localhost/api/openapi](http://seo.localhost/api/openapi)`
+- **Interactive UI**: `[http://seo.localhost/swagger/](http://seo.localhost/swagger/)`
 
 ---
 
