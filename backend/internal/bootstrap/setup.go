@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"backend/internal/config"
 	"backend/internal/shared"
+	"backend/internal/static"
 	"log/slog"
 	"net/http"
 	"time"
@@ -73,6 +74,12 @@ func SetupHuma(cfg *config.Config, cacher shared.Cacher) http.Handler {
 
 	seoHandler := SetupSeoHandler(cfg, cacher)
 	seoDelivery.RegisterRoutes(api, seoHandler)
+
+	localesFS := static.GetLocalesFS()
+	fileServer := http.FileServer(http.FS(localesFS))
+
+	const localePath = "/api/locales/"
+	mux.Handle(localePath, http.StripPrefix(localePath, fileServer))
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,

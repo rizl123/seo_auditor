@@ -1,0 +1,115 @@
+{
+  "errors": {
+    "invalid_url": "Invalid URL provided",
+    "url_format": "URL must start with http:// or https:// and contain a host",
+    "internal_error": "Failed to process scan request",
+    "try_later": "Please try again later",
+    "auditor_failed": "Auditor failed to execute"
+  },
+  "auditors": {
+    "meta": {
+      "name": "Meta & SEO Tags",
+      "description": "Checks title, meta description, canonical URL, og:image and H1 headings for correctness and completeness.",
+      "labels": {
+        "title": "Title",
+        "description": "Description",
+        "canonical": "Canonical",
+        "og_image": "OG Image",
+        "h1_count": "H1 Count"
+      },
+      "problems": {
+        "unavailable": {
+          "name": "Page metadata unavailable",
+          "description": "The page returned status {status, number}, so metadata could not be extracted.",
+          "solutions": [
+            "Ensure the page returns HTTP 200",
+            "Check server logs for errors"
+          ]
+        },
+        "missing_title": {
+          "name": "Missing title tag",
+          "description": "The page has no <title> tag. Search engines use the title as the primary clickable headline in SERPs.",
+          "solutions": [
+            "Add a descriptive <title> tag",
+            "Keep it between 50–60 characters"
+          ]
+        },
+        "title_too_short": {
+          "name": "Title tag too short",
+          "description": "Title is only {length, plural, one {# character} other {# characters}}. Short titles look thin in SERPs.",
+          "solutions": ["Expand the title to 50–60 characters"]
+        },
+        "title_too_long": {
+          "name": "Title tag too long",
+          "description": "Title is {length, number} characters — Google typically truncates after ~60 chars.",
+          "solutions": ["Trim the title to under 60 characters"]
+        },
+        "missing_description": {
+          "name": "Missing meta description",
+          "description": "No meta description found. Google often uses it as the snippet in SERPs.",
+          "solutions": [
+            "Add <meta name=\"description\">",
+            "Write a summary (120–160 chars)"
+          ]
+        },
+        "description_too_long": {
+          "name": "Meta description too long",
+          "description": "Description is {length, number} characters. Google truncates around 160 chars.",
+          "solutions": ["Trim to 120–160 characters"]
+        },
+        "missing_h1": {
+          "name": "Missing H1 heading",
+          "description": "The page has no <h1> tag. H1 is a strong relevance signal.",
+          "solutions": ["Add exactly one <h1> that matches the topic"]
+        },
+        "multiple_h1": {
+          "name": "Multiple H1 headings",
+          "description": "Found {count, plural, one {# H1 tag} other {# H1 tags}}. This can confuse crawlers.",
+          "solutions": ["Keep exactly one <h1> per page"]
+        },
+        "missing_canonical": {
+          "name": "Missing canonical tag",
+          "description": "No canonical URL specified. Search engines may index duplicate URLs.",
+          "solutions": ["Add <link rel=\"canonical\">"]
+        },
+        "missing_og_image": {
+          "name": "Missing og:image",
+          "description": "No Open Graph image defined. Social shares will have no preview.",
+          "solutions": ["Add <meta property=\"og:image\">"]
+        }
+      }
+    },
+    "performance": {
+      "name": "Performance & HTTP",
+      "description": "Analyses server response time, HTTP status code and content type to surface basic performance and configuration issues.",
+      "labels": {
+        "response_time": "Response Time",
+        "status_code": "Status Code",
+        "server_header": "Server Header",
+        "content_type": "Content Type"
+      },
+      "problems": {
+        "slow_ttfb": {
+          "name": "Slow server response (TTFB)",
+          "description": "Server responded in {ms, number}ms. Above 1500ms it can negatively affect rankings.",
+          "solutions": ["Enable server-side caching", "Use a CDN"]
+        },
+        "approaching_threshold": {
+          "name": "Response time approaching threshold",
+          "description": "Server responded in {ms, number}ms. Monitor spikes over 1500ms.",
+          "solutions": ["Profile slow endpoints", "Check for N+1 queries"]
+        },
+        "non_200_status": {
+          "name": "Non-200 HTTP status",
+          "description": "Status {status, number}. Search engines may not index non-200 pages.",
+          "solutions": ["Ensure 200 OK", "Set up 301 redirects"]
+        },
+        "unexpected_content_type": {
+          "name": "Unexpected Content-Type",
+          "description": "Content-Type is \"{type}\". HTML is expected.",
+          "solutions": ["Verify server returns text/html"]
+        }
+      }
+    }
+  }
+}

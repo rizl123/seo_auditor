@@ -29,7 +29,7 @@ func TestScanUsecase_Execute(t *testing.T) {
 	report := &domain.AggregatedReport{
 		URL: targetURL,
 		Results: []domain.ScanResult{
-			{AuditorName: "meta", Name: "Meta Tags"},
+			{AuditorName: "meta", I18nNamespace: "Meta Tags"},
 		},
 	}
 

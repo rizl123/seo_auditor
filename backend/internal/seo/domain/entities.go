@@ -17,9 +17,9 @@ const (
 )
 
 type Detail struct {
-	Label string
-	Value any
-	Type  DetailType
+	I18nLabel string
+	Value     any
+	Type      DetailType
 }
 
 type PageReport struct {
@@ -46,10 +46,9 @@ type NetworkInfo struct {
 }
 
 type Problem struct {
-	Name        string
-	Description string
-	Solutions   []string
-	Resources   []Resource
+	I18nNamespace   string
+	DescriptionVars map[string]any
+	Resources       []Resource
 }
 
 type Resource struct {
@@ -58,13 +57,12 @@ type Resource struct {
 }
 
 type ScanResult struct {
-	AuditorName string
-	Name        string
-	Description string
-	Details     []Detail
-	Problems    []Problem
-	IsCached    bool
-	ScannedAt   time.Time
+	AuditorName   string
+	I18nNamespace string
+	Details       []Detail
+	Problems      []Problem
+	IsCached      bool
+	ScannedAt     time.Time
 }
 
 type AggregatedReport struct {

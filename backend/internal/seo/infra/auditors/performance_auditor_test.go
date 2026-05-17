@@ -12,6 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func validNetwork() *domain.NetworkInfo {
+	return &domain.NetworkInfo{
+		ResponseTime: 200 * time.Millisecond,
+		Server:       "nginx",
+		ContentType:  "text/html; charset=utf-8",
+	}
+}
+
 func TestPerformanceAuditor_Analyze(t *testing.T) {
 	auditor := auditors.NewPerformanceAuditor()
 
@@ -19,42 +27,71 @@ func TestPerformanceAuditor_Analyze(t *testing.T) {
 		name          string
 		report        *domain.PageReport
 		expectedProbs []string
+		expectedVars  map[string]map[string]any
 	}{
 		{
-			name: "Slow Response + Status Error",
+			name: "Valid 200 OK and Fast Response",
 			report: &domain.PageReport{
-				Status: 500,
-				Network: &domain.NetworkInfo{
-					ResponseTime: 2000 * time.Millisecond,
-					ContentType:  "text/html",
-				},
+				Status:  200,
+				Network: validNetwork(),
 			},
-			expectedProbs: []string{
-				"Slow server response (TTFB)",
-				"Non-200 HTTP status: 500",
+			expectedProbs: []string{},
+		},
+		{
+			name: "Slow Response TTFB",
+			report: &domain.PageReport{
+				Status: 200,
+				Network: func() *domain.NetworkInfo {
+					n := validNetwork()
+					n.ResponseTime = 1650 * time.Millisecond
+					return n
+				}(),
+			},
+			expectedProbs: []string{"auditors.performance.problems.slow_ttfb"},
+			expectedVars: map[string]map[string]any{
+				"auditors.performance.problems.slow_ttfb": {"ms": int64(1650)},
 			},
 		},
 		{
-			name: "Wrong Content Type Only",
+			name: "Warning Response TTFB",
 			report: &domain.PageReport{
 				Status: 200,
-				Network: &domain.NetworkInfo{
-					ResponseTime: 100 * time.Millisecond,
-					ContentType:  "application/json",
-				},
+				Network: func() *domain.NetworkInfo {
+					n := validNetwork()
+					n.ResponseTime = 850 * time.Millisecond
+					return n
+				}(),
 			},
-			expectedProbs: []string{"Unexpected Content-Type"},
+			expectedProbs: []string{"auditors.performance.problems.approaching_threshold"},
+			expectedVars: map[string]map[string]any{
+				"auditors.performance.problems.approaching_threshold": {"ms": int64(850)},
+			},
 		},
 		{
-			name: "Warning threshold (801ms)",
+			name: "Non-200 HTTP Status",
+			report: &domain.PageReport{
+				Status:  503,
+				Network: validNetwork(),
+			},
+			expectedProbs: []string{"auditors.performance.problems.non_200_status"},
+			expectedVars: map[string]map[string]any{
+				"auditors.performance.problems.non_200_status": {"status": 503},
+			},
+		},
+		{
+			name: "Unexpected Content-Type",
 			report: &domain.PageReport{
 				Status: 200,
-				Network: &domain.NetworkInfo{
-					ResponseTime: 801 * time.Millisecond,
-					ContentType:  "text/html",
-				},
+				Network: func() *domain.NetworkInfo {
+					n := validNetwork()
+					n.ContentType = "application/xml"
+					return n
+				}(),
 			},
-			expectedProbs: []string{"Response time approaching threshold"},
+			expectedProbs: []string{"auditors.performance.problems.unexpected_content_type"},
+			expectedVars: map[string]map[string]any{
+				"auditors.performance.problems.unexpected_content_type": {"type": "application/xml"},
+			},
 		},
 	}
 
@@ -63,11 +100,23 @@ func TestPerformanceAuditor_Analyze(t *testing.T) {
 			result, err := auditor.Analyze(context.Background(), tt.report)
 			require.NoError(t, err)
 
-			actualProbNames := make([]string, 0)
+			actualProbNames := make([]string, 0, len(result.Problems))
+			probMap := make(map[string]domain.Problem)
+
 			for _, p := range result.Problems {
-				actualProbNames = append(actualProbNames, p.Name)
+				actualProbNames = append(actualProbNames, p.I18nNamespace)
+				probMap[p.I18nNamespace] = p
 			}
 			assert.ElementsMatch(t, tt.expectedProbs, actualProbNames)
+
+			for probKey, expectedVars := range tt.expectedVars {
+				actualProb, exists := probMap[probKey]
+				if assert.True(t, exists) {
+					for varKey, expectedVal := range expectedVars {
+						assert.Equal(t, expectedVal, actualProb.DescriptionVars[varKey])
+					}
+				}
+			}
 		})
 	}
 }

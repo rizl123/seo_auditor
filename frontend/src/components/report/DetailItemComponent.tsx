@@ -7,6 +7,7 @@ type DetailItemProps = {
 
 export function DetailItemComponent({ item }: DetailItemProps) {
   const t = useTranslations("Report");
+  const a = useTranslations("API");
 
   const renderValue = () => {
     if (item.value === null || item.value === undefined || item.value === "") {
@@ -41,7 +42,7 @@ export function DetailItemComponent({ item }: DetailItemProps) {
   return (
     <div className="overflow-hidden">
       <p className="text-xs font-bold text-zinc-400 uppercase tracking-tighter mb-0.5">
-        {item.label}
+        {a(item.i18n_label)}
       </p>
       <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
         {renderValue()}

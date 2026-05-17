@@ -4,6 +4,9 @@ import type { Problem } from "@/types/report";
 
 export function ProblemItem({ problem }: { problem: Problem }) {
   const t = useTranslations("Report");
+  const a = useTranslations(`API.${problem.i18n_namespace}`);
+
+  const solutions: string[] = a.raw("solutions");
 
   return (
     <div className="p-6">
@@ -14,21 +17,21 @@ export function ProblemItem({ problem }: { problem: Problem }) {
         <div className="flex-1 space-y-4">
           <div>
             <h4 className="font-bold text-zinc-900 dark:text-zinc-100">
-              {problem.name}
+              {a("name")}
             </h4>
             <p className="text-sm text-zinc-500 mt-1 leading-relaxed">
-              {problem.description}
+              {a("description", problem.description_vars)}
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
-            {problem.solutions?.length > 0 && (
+            {solutions?.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-bold text-zinc-400 uppercase flex items-center gap-1.5">
                   <Lightbulb size={12} className="text-amber-500" />
                   {t("howToFix")}
                 </p>
                 <ul className="space-y-1.5">
-                  {problem.solutions.map((s) => (
+                  {solutions.map((s) => (
                     <li
                       key={s}
                       className="text-xs text-zinc-600 dark:text-zinc-400 flex items-start gap-2"
@@ -42,7 +45,7 @@ export function ProblemItem({ problem }: { problem: Problem }) {
             )}
             {problem.resources?.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                <p className="text-xs font-bold text-zinc-400 uppercase">
                   {t("docs")}
                 </p>
                 <div className="flex flex-wrap gap-2">

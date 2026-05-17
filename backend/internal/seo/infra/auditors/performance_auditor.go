@@ -3,7 +3,6 @@ package auditors
 import (
 	"backend/internal/seo/domain"
 	"context"
-	"fmt"
 	"strings"
 	"time"
 )
@@ -21,13 +20,11 @@ func (s *PerformanceAuditor) AuditorName() string { return "performance" }
 
 func (s *PerformanceAuditor) Analyze(_ context.Context, report *domain.PageReport) (*domain.ScanResult, error) {
 	result := &domain.ScanResult{
-		AuditorName: s.AuditorName(),
-		Name:        "Performance & HTTP",
-		Description: "Analyses server response time, HTTP status code and content type " +
-			"to surface basic performance and configuration issues.",
-		Details:   []domain.Detail{},
-		Problems:  []domain.Problem{},
-		ScannedAt: time.Now(),
+		AuditorName:   s.AuditorName(),
+		I18nNamespace: "auditors.performance",
+		Details:       []domain.Detail{},
+		Problems:      []domain.Problem{},
+		ScannedAt:     time.Now(),
 	}
 
 	if report.Network == nil {
@@ -36,10 +33,26 @@ func (s *PerformanceAuditor) Analyze(_ context.Context, report *domain.PageRepor
 
 	net := report.Network
 	result.Details = append(result.Details,
-		domain.Detail{Label: "Response Time", Value: net.ResponseTime.Milliseconds(), Type: domain.DetailTypeDuration},
-		domain.Detail{Label: "Status Code", Value: report.Status, Type: domain.DetailTypeBadge},
-		domain.Detail{Label: "Server Header", Value: net.Server, Type: domain.DetailTypeText},
-		domain.Detail{Label: "Content Type", Value: net.ContentType, Type: domain.DetailTypeText},
+		domain.Detail{
+			I18nLabel: "auditors.performance.labels.response_time",
+			Value:     net.ResponseTime.Milliseconds(),
+			Type:      domain.DetailTypeDuration,
+		},
+		domain.Detail{
+			I18nLabel: "auditors.performance.labels.status_code",
+			Value:     report.Status,
+			Type:      domain.DetailTypeBadge,
+		},
+		domain.Detail{
+			I18nLabel: "auditors.performance.labels.server_header",
+			Value:     net.Server,
+			Type:      domain.DetailTypeText,
+		},
+		domain.Detail{
+			I18nLabel: "auditors.performance.labels.content_type",
+			Value:     net.ContentType,
+			Type:      domain.DetailTypeText,
+		},
 	)
 
 	s.checkResponseTime(result, net.ResponseTime)
@@ -49,14 +62,14 @@ func (s *PerformanceAuditor) Analyze(_ context.Context, report *domain.PageRepor
 }
 
 func (s *PerformanceAuditor) checkResponseTime(result *domain.ScanResult, rt time.Duration) {
-	ms := rt.Milliseconds()
+	descVars := make(map[string]any)
+	descVars["ms"] = rt.Milliseconds()
+
 	switch {
 	case rt > slowResponseThreshold:
 		result.Problems = append(result.Problems, domain.Problem{
-			Name: "Slow server response (TTFB)",
-			Description: fmt.Sprintf("Server responded in %dms. "+
-				"Above 1500ms it can negatively affect rankings.", ms),
-			Solutions: []string{"Enable server-side caching", "Use a CDN"},
+			I18nNamespace:   "auditors.performance.problems.slow_ttfb",
+			DescriptionVars: descVars,
 			Resources: []domain.Resource{
 				{Title: "web.dev: Optimize TTFB", URL: "https://web.dev/articles/optimize-ttfb"},
 				{
@@ -67,10 +80,8 @@ func (s *PerformanceAuditor) checkResponseTime(result *domain.ScanResult, rt tim
 		})
 	case rt > warnResponseThreshold:
 		result.Problems = append(result.Problems, domain.Problem{
-			Name: "Response time approaching threshold",
-			Description: fmt.Sprintf("Server responded in %dms. "+
-				"Monitor spikes over 1500ms.", ms),
-			Solutions: []string{"Profile slow endpoints", "Check for N+1 queries"},
+			I18nNamespace:   "auditors.performance.problems.approaching_threshold",
+			DescriptionVars: descVars,
 			Resources: []domain.Resource{
 				{Title: "web.dev: Optimize TTFB", URL: "https://web.dev/articles/optimize-ttfb"},
 			},
@@ -80,11 +91,12 @@ func (s *PerformanceAuditor) checkResponseTime(result *domain.ScanResult, rt tim
 
 func (s *PerformanceAuditor) checkStatusAndType(result *domain.ScanResult, report *domain.PageReport) {
 	if report.Status != 200 {
+		descVars := make(map[string]any)
+		descVars["status"] = report.Status
+
 		result.Problems = append(result.Problems, domain.Problem{
-			Name: fmt.Sprintf("Non-200 HTTP status: %d", report.Status),
-			Description: fmt.Sprintf("Status %d. Search engines may not index non-200 pages.",
-				report.Status),
-			Solutions: []string{"Ensure 200 OK", "Set up 301 redirects"},
+			I18nNamespace:   "auditors.performance.problems.non_200_status",
+			DescriptionVars: descVars,
 			Resources: []domain.Resource{
 				{
 					Title: "Google: HTTP status codes",
@@ -100,11 +112,12 @@ func (s *PerformanceAuditor) checkStatusAndType(result *domain.ScanResult, repor
 
 	net := report.Network
 	if net.ContentType != "" && !strings.Contains(net.ContentType, "text/html") {
+		descVars := make(map[string]any)
+		descVars["type"] = net.ContentType
+
 		result.Problems = append(result.Problems, domain.Problem{
-			Name: "Unexpected Content-Type",
-			Description: fmt.Sprintf("Content-Type is %q. HTML is expected.",
-				net.ContentType),
-			Solutions: []string{"Verify server returns text/html"},
+			I18nNamespace:   "auditors.performance.problems.unexpected_content_type",
+			DescriptionVars: descVars,
 			Resources: []domain.Resource{
 				{Title: "MDN: Content-Type", URL: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type"},
 			},

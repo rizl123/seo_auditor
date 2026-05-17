@@ -27,7 +27,7 @@ func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.Aggr
 		return nil, fmt.Errorf("infra: base scan failed: %w", err)
 	}
 
-	results := make([]domain.ScanResult, len(m.auditors))
+	results := make([]*domain.ScanResult, len(m.auditors))
 	var wg sync.WaitGroup
 
 	for i, auditor := range m.auditors {
@@ -49,24 +49,24 @@ func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.Aggr
 					"auditor", sc.AuditorName(),
 					"error", err,
 				)
-				results[idx] = domain.ScanResult{
-					AuditorName: sc.AuditorName(),
-					Name:        sc.AuditorName(),
-					Description: "Auditor failed to execute",
-					Problems:    []domain.Problem{},
-					Details:     make([]domain.Detail, 0),
-				}
 				return
 			}
 
-			results[idx] = *result
+			results[idx] = result
 		}(i, auditor)
 	}
 
 	wg.Wait()
 
+	filtered := make([]domain.ScanResult, 0, len(m.auditors))
+	for _, ptr := range results {
+		if ptr != nil {
+			filtered = append(filtered, *ptr)
+		}
+	}
+
 	return &domain.AggregatedReport{
 		URL:     url,
-		Results: results,
+		Results: filtered,
 	}, nil
 }

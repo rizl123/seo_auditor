@@ -1,18 +1,26 @@
 import { notFound } from "next/navigation";
-import type { GetRequestConfigParams, RequestConfig } from "next-intl/server";
+import type {
+  GetRequestConfigParams as Params,
+  RequestConfig,
+} from "next-intl/server";
 import { getRequestConfig } from "next-intl/server";
 import type { Locale } from "@/config/i18n";
+import { API_URL } from "@/config/urls";
 import { routing } from "@/i18n/routing";
 
-async function createRequestConfig(
-  params: GetRequestConfigParams,
-): Promise<RequestConfig> {
+async function createRequestConfig(params: Params): Promise<RequestConfig> {
   const l = params.locale || (await params.requestLocale);
   const locale = (l || routing.defaultLocale) as Locale;
   if (!routing.locales.includes(locale)) notFound();
+
+  const frontendLocale = (await import(`./messages/${locale}.json`)).default;
+
+  const apiFetched = await fetch(`${API_URL}/api/locales/${locale}.json`);
+  const API = await apiFetched.json();
+
   return {
     locale,
-    messages: (await import(`./messages/${locale}.json`)).default,
+    messages: { ...frontendLocale, API },
   };
 }
 

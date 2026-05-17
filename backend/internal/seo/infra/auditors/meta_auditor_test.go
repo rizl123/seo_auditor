@@ -25,10 +25,10 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 	auditor := auditors.NewMetaAuditor()
 
 	tests := []struct {
-		name           string
-		report         *domain.PageReport
-		expectedProbs  []string
-		expectedDetail map[string]any
+		name          string
+		report        *domain.PageReport
+		expectedProbs []string
+		expectedVars  map[string]map[string]any
 	}{
 		{
 			name: "Critical: Metadata is nil",
@@ -36,7 +36,10 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 				Status:   404,
 				Metadata: nil,
 			},
-			expectedProbs: []string{"Page metadata unavailable"},
+			expectedProbs: []string{"auditors.meta.problems.unavailable"},
+			expectedVars: map[string]map[string]any{
+				"auditors.meta.problems.unavailable": {"status": 404},
+			},
 		},
 		{
 			name: "Title: Empty string",
@@ -47,10 +50,11 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 					return m
 				}(),
 			},
-			expectedProbs: []string{"Missing title tag"},
+			expectedProbs: []string{"auditors.meta.problems.missing_title"},
+			expectedVars:  nil,
 		},
 		{
-			name: "Title: Too short (29 chars)",
+			name: "Title: Too short",
 			report: &domain.PageReport{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
@@ -58,10 +62,13 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 					return m
 				}(),
 			},
-			expectedProbs: []string{"Title tag too short"},
+			expectedProbs: []string{"auditors.meta.problems.title_too_short"},
+			expectedVars: map[string]map[string]any{
+				"auditors.meta.problems.title_too_short": {"length": 28},
+			},
 		},
 		{
-			name: "Title: Too long (61 chars)",
+			name: "Title: Too long",
 			report: &domain.PageReport{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
@@ -69,7 +76,10 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 					return m
 				}(),
 			},
-			expectedProbs: []string{"Title tag too long"},
+			expectedProbs: []string{"auditors.meta.problems.title_too_long"},
+			expectedVars: map[string]map[string]any{
+				"auditors.meta.problems.title_too_long": {"length": 61},
+			},
 		},
 		{
 			name: "Description: Empty",
@@ -80,41 +90,36 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 					return m
 				}(),
 			},
-			expectedProbs: []string{"Missing meta description"},
+			expectedProbs: []string{"auditors.meta.problems.missing_description"},
 		},
 		{
-			name: "Description: Too long (>160)",
+			name: "Description: Too long",
 			report: &domain.PageReport{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
-					m.Description = "This is a very long description. It needs to exceed one hundred and sixty characters to trigger the auditor. " +
-						"So we keep writing and writing until we are absolutely sure the limit is passed."
+					m.Description = "This is a very long description. It needs to exceed one hundred and sixty characters to trigger the auditor. So we keep writing and writing until we are absolutely sure the limit is passed."
 					return m
 				}(),
 			},
-			expectedProbs: []string{"Meta description too long"},
+			expectedProbs: []string{"auditors.meta.problems.description_too_long"},
+			expectedVars: map[string]map[string]any{
+				"auditors.meta.problems.description_too_long": {"length": 189},
+			},
 		},
 		{
-			name: "Canonical: Missing",
+			name: "Canonical and OgImage: Missing",
 			report: &domain.PageReport{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
 					m.Canonical = ""
-					return m
-				}(),
-			},
-			expectedProbs: []string{"Missing canonical tag"},
-		},
-		{
-			name: "OgImage: Missing",
-			report: &domain.PageReport{
-				Metadata: func() *domain.Metadata {
-					m := validMeta()
 					m.OgImage = ""
 					return m
 				}(),
 			},
-			expectedProbs: []string{"Missing og:image"},
+			expectedProbs: []string{
+				"auditors.meta.problems.missing_canonical",
+				"auditors.meta.problems.missing_og_image",
+			},
 		},
 		{
 			name: "H1: Missing",
@@ -125,18 +130,21 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 					return m
 				}(),
 			},
-			expectedProbs: []string{"Missing H1 heading"},
+			expectedProbs: []string{"auditors.meta.problems.missing_h1"},
 		},
 		{
 			name: "H1: Multiple",
 			report: &domain.PageReport{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
-					m.H1 = []string{"First", "Second"}
+					m.H1 = []string{"First", "Second", "Third"}
 					return m
 				}(),
 			},
-			expectedProbs: []string{"Multiple H1 headings"},
+			expectedProbs: []string{"auditors.meta.problems.multiple_h1"},
+			expectedVars: map[string]map[string]any{
+				"auditors.meta.problems.multiple_h1": {"length": 3},
+			},
 		},
 	}
 
@@ -145,11 +153,23 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 			result, err := auditor.Analyze(context.Background(), tt.report)
 			require.NoError(t, err)
 
-			actualProbNames := make([]string, 0)
+			actualProbNames := make([]string, 0, len(result.Problems))
+			probMap := make(map[string]domain.Problem)
+
 			for _, p := range result.Problems {
-				actualProbNames = append(actualProbNames, p.Name)
+				actualProbNames = append(actualProbNames, p.I18nNamespace)
+				probMap[p.I18nNamespace] = p
 			}
-			assert.ElementsMatch(t, tt.expectedProbs, actualProbNames, tt.name)
+			assert.ElementsMatch(t, tt.expectedProbs, actualProbNames)
+
+			for probKey, expectedVars := range tt.expectedVars {
+				actualProb, exists := probMap[probKey]
+				if assert.True(t, exists) {
+					for varKey, expectedVal := range expectedVars {
+						assert.Equal(t, expectedVal, actualProb.DescriptionVars[varKey])
+					}
+				}
+			}
 		})
 	}
 }

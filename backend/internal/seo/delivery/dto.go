@@ -11,26 +11,24 @@ type AggregatedReportDTO struct {
 }
 
 type ScanResultDTO struct {
-	AuditorName string          `json:"auditor_name"`
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Details     []DetailItemDTO `json:"details,omitempty"`
-	Problems    []ProblemDTO    `json:"problems"`
-	IsCached    bool            `json:"is_cached"`
-	ScannedAt   time.Time       `json:"scanned_at"`
+	AuditorName   string          `json:"auditor_name"`
+	I18nNamespace string          `json:"i18n_namespace"`
+	Details       []DetailItemDTO `json:"details,omitempty"`
+	Problems      []ProblemDTO    `json:"problems"`
+	IsCached      bool            `json:"is_cached"`
+	ScannedAt     time.Time       `json:"scanned_at"`
 }
 
 type DetailItemDTO struct {
-	Label string            `json:"label"`
-	Value any               `json:"value"`
-	Type  domain.DetailType `json:"type"`
+	I18nLabel string            `json:"i18n_label"`
+	Value     any               `json:"value"`
+	Type      domain.DetailType `json:"type"`
 }
 
 type ProblemDTO struct {
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Solutions   []string      `json:"solutions"`
-	Resources   []ResourceDTO `json:"resources"`
+	I18nNamespace   string         `json:"i18n_namespace"`
+	DescriptionVars map[string]any `json:"description_vars"`
+	Resources       []ResourceDTO  `json:"resources"`
 }
 
 type ResourceDTO struct {
@@ -59,9 +57,9 @@ func toScanResultDTO(r domain.ScanResult) ScanResultDTO {
 	details := make([]DetailItemDTO, len(r.Details))
 	for i, d := range r.Details {
 		details[i] = DetailItemDTO{
-			Label: d.Label,
-			Value: d.Value,
-			Type:  d.Type,
+			I18nLabel: d.I18nLabel,
+			Value:     d.Value,
+			Type:      d.Type,
 		}
 	}
 
@@ -71,13 +69,12 @@ func toScanResultDTO(r domain.ScanResult) ScanResultDTO {
 	}
 
 	return ScanResultDTO{
-		AuditorName: r.AuditorName,
-		Name:        r.Name,
-		Description: r.Description,
-		Details:     details,
-		IsCached:    r.IsCached,
-		ScannedAt:   r.ScannedAt,
-		Problems:    problems,
+		AuditorName:   r.AuditorName,
+		I18nNamespace: r.I18nNamespace,
+		Details:       details,
+		IsCached:      r.IsCached,
+		ScannedAt:     r.ScannedAt,
+		Problems:      problems,
 	}
 }
 
@@ -87,15 +84,9 @@ func toProblemDTO(p domain.Problem) ProblemDTO {
 		resources[i] = ResourceDTO{Title: r.Title, URL: r.URL}
 	}
 
-	solutions := p.Solutions
-	if solutions == nil {
-		solutions = []string{}
-	}
-
 	return ProblemDTO{
-		Name:        p.Name,
-		Description: p.Description,
-		Solutions:   solutions,
-		Resources:   resources,
+		I18nNamespace:   p.I18nNamespace,
+		DescriptionVars: p.DescriptionVars,
+		Resources:       resources,
 	}
 }

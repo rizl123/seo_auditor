@@ -67,7 +67,7 @@ func (s *CachedAuditor) cacheKey(u *neturl.URL) string {
 
 func (s *CachedAuditor) fetch(ctx context.Context, key string) *domain.ScanResult {
 	var result domain.ScanResult
-	err := s.cacher.Fetch(ctx, "named_scan", key, &result)
+	err := s.cacher.Fetch(ctx, "auditor", key, &result)
 
 	if err == nil {
 		result.IsCached = true
@@ -101,7 +101,7 @@ func (s *CachedAuditor) store(ctx context.Context, key string, result domain.Sca
 	bgCtx, cancel := context.WithTimeout(detachedCtx, 3*time.Second)
 	defer cancel()
 
-	err := s.cacher.Store(bgCtx, "named_scan", key, result, s.ttl)
+	err := s.cacher.Store(bgCtx, "auditor", key, result, s.ttl)
 	if err != nil {
 		// #nosec G706
 		slog.Warn("infra: failed to store in cache, tripping circuit breaker",

@@ -1,6 +1,5 @@
 "use server";
 
-import { getTranslations } from "next-intl/server";
 import { API_URL } from "@/config/urls";
 import type { ApiErrorItem, ApiErrorResponse } from "@/types/api";
 import type { PageReport } from "@/types/report";
@@ -10,11 +9,9 @@ export type ScanResponse =
   | { data: PageReport; success: true };
 
 export async function scanURL(url: string): Promise<ScanResponse> {
-  const t = await getTranslations("ScanErrors");
-
   if (!url) {
     return {
-      detail: t("urlRequired"),
+      detail: "ScanErrors.urlRequired",
       success: false,
     };
   }
@@ -32,7 +29,9 @@ export async function scanURL(url: string): Promise<ScanResponse> {
     if (!res.ok) {
       const apiError = data as ApiErrorResponse;
       return {
-        detail: apiError.detail || t("defaultError"),
+        detail: apiError.detail
+          ? `API.${apiError.detail}`
+          : "ScanErrors.defaultError",
         errors: apiError.errors,
         success: false,
       };
@@ -44,7 +43,7 @@ export async function scanURL(url: string): Promise<ScanResponse> {
     };
   } catch {
     return {
-      detail: t("connectionFailed"),
+      detail: "ScanErrors.connectionFailed",
       success: false,
     };
   }

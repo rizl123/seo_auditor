@@ -1,7 +1,7 @@
 import { Clock } from "lucide-react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Card } from "@/components/Card";
+import { ImageLoader } from "@/components/ImageLoader";
 import type { ScanResult } from "@/types/report";
 import { DetailItemComponent } from "./DetailItemComponent";
 import { ProblemItem } from "./ProblemItem";
@@ -12,6 +12,9 @@ interface ScannerSectionProps {
 
 export function ScannerSection({ result }: ScannerSectionProps) {
   const t = useTranslations("Report");
+  const a = useTranslations("API");
+  const r = useTranslations(`API.${result.i18n_namespace}`);
+
   const hasProblems = result.problems && result.problems.length > 0;
 
   const imageDetails = result.details.filter((d) => d.type === "image");
@@ -23,7 +26,7 @@ export function ScannerSection({ result }: ScannerSectionProps) {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-black uppercase tracking-tight text-zinc-800 dark:text-zinc-200">
-              {result.name}
+              {r("name")}
             </h3>
             {hasProblems ? (
               <span className="text-xs bg-rose-500 text-white px-2 py-0.5 rounded-full font-bold">
@@ -35,7 +38,7 @@ export function ScannerSection({ result }: ScannerSectionProps) {
               </span>
             )}
           </div>
-          <p className="text-xs text-zinc-500 max-w-xl">{result.description}</p>
+          <p className="text-xs text-zinc-500 max-w-xl">{r("description")}</p>
         </div>
         <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 font-mono bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-md">
           <Clock size={12} />
@@ -47,7 +50,7 @@ export function ScannerSection({ result }: ScannerSectionProps) {
         {regularDetails.length > 0 && (
           <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 bg-zinc-50/30 dark:bg-zinc-900/10">
             {regularDetails.map((detail) => (
-              <DetailItemComponent key={detail.label} item={detail} />
+              <DetailItemComponent key={detail.i18n_label} item={detail} />
             ))}
           </div>
         )}
@@ -55,21 +58,12 @@ export function ScannerSection({ result }: ScannerSectionProps) {
         {imageDetails.length > 0 && (
           <div className="p-6 bg-zinc-50/50 dark:bg-zinc-900/20 border-t border-zinc-100 dark:border-zinc-800">
             {imageDetails.map((detail) => (
-              <div key={detail.label} className="space-y-3">
+              <div key={detail.i18n_label} className="space-y-3">
                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-tighter">
-                  {detail.label}
+                  {a(detail.i18n_label)}
                 </p>
                 {detail.value && detail.value.trim() !== "" ? (
-                  <div className="relative border border-border-custom rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 inline-block shadow-sm">
-                    <Image
-                      src={detail.value}
-                      alt={detail.label}
-                      width={600}
-                      height={315}
-                      unoptimized
-                      className="max-w-full h-auto max-h-64 object-contain"
-                    />
-                  </div>
+                  <ImageLoader src={detail.value} alt={a(detail.i18n_label)} />
                 ) : (
                   <div className="text-sm font-semibold">
                     <span className="text-zinc-300 italic">{t("noData")}</span>
@@ -83,7 +77,7 @@ export function ScannerSection({ result }: ScannerSectionProps) {
         {hasProblems && (
           <div className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
             {result.problems.map((problem) => (
-              <ProblemItem key={problem.name} problem={problem} />
+              <ProblemItem key={problem.i18n_namespace} problem={problem} />
             ))}
           </div>
         )}

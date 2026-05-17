@@ -29,17 +29,14 @@ func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOu
 	url, err := url.Parse(input.URL)
 
 	if err != nil || url.Scheme == "" || url.Host == "" {
-		return nil, huma.Error400BadRequest(
-			"Invalid URL provided",
-			fmt.Errorf("url must start with http:// or https:// and contain a host"),
-		)
+		return nil, huma.Error400BadRequest("errors.invalid_url", fmt.Errorf("errors.url_format"))
 	}
 
 	report, err := h.usecase.Execute(ctx, url)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(
-			"Failed to process scan request",
-			fmt.Errorf("please try again later"),
+			"errors.internal_error",
+			fmt.Errorf("errors.try_later"),
 		)
 	}
 

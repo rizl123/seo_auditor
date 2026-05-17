@@ -60,7 +60,7 @@ func TestCachedAuditor_Analyze_Logic(t *testing.T) {
 		mC, mA := new(MockCacher), new(MockAuditor)
 		auditor := NewCachedAuditor(mA, mC, time.Hour, time.Minute)
 
-		mC.On("Fetch", ctx, "named_scan", cacheKey, mock.AnythingOfType("*domain.ScanResult")).
+		mC.On("Fetch", ctx, "auditor", cacheKey, mock.AnythingOfType("*domain.ScanResult")).
 			Return(nil, result)
 
 		res, err := auditor.Analyze(ctx, report)
@@ -74,11 +74,11 @@ func TestCachedAuditor_Analyze_Logic(t *testing.T) {
 		mC, mA := new(MockCacher), new(MockAuditor)
 		auditor := NewCachedAuditor(mA, mC, time.Hour, time.Minute)
 
-		mC.On("Fetch", ctx, "named_scan", cacheKey, mock.Anything).Return(shared.ErrCacheMiss)
+		mC.On("Fetch", ctx, "auditor", cacheKey, mock.Anything).Return(shared.ErrCacheMiss)
 		mA.On("Analyze", ctx, report).Return(result, nil)
 
 		storeCalled := make(chan struct{})
-		mC.On("Store", mock.Anything, "named_scan", cacheKey, mock.AnythingOfType("domain.ScanResult"), time.Hour).
+		mC.On("Store", mock.Anything, "auditor", cacheKey, mock.AnythingOfType("domain.ScanResult"), time.Hour).
 			Return(nil).
 			Run(func(args mock.Arguments) { close(storeCalled) })
 
