@@ -1,4 +1,4 @@
-package auditors
+package infra
 
 import (
 	"backend/internal/seo/domain"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type CachedAuditor struct {
+type CachedAuditorProxy struct {
 	base               domain.Auditor
 	cacher             shared.Cacher
 	ttl                time.Duration
@@ -25,8 +25,8 @@ func NewCachedAuditor(
 	base domain.Auditor,
 	cacher shared.Cacher,
 	ttl, breakDuration time.Duration,
-) *CachedAuditor {
-	return &CachedAuditor{
+) *CachedAuditorProxy {
+	return &CachedAuditorProxy{
 		base:          base,
 		cacher:        cacher,
 		ttl:           ttl,
@@ -34,11 +34,11 @@ func NewCachedAuditor(
 	}
 }
 
-func (s *CachedAuditor) AuditorName() string {
+func (s *CachedAuditorProxy) AuditorName() string {
 	return s.base.AuditorName()
 }
 
-func (s *CachedAuditor) Analyze(ctx context.Context, report *domain.PageReport) (*domain.ScanResult, error) {
+func (s *CachedAuditorProxy) Analyze(ctx context.Context, report *domain.PageReport) (*domain.ScanResult, error) {
 	cacheAvailable := s.isCacheAvailable()
 	cacheKey := s.cacheKey(report.URL)
 
@@ -61,11 +61,11 @@ func (s *CachedAuditor) Analyze(ctx context.Context, report *domain.PageReport) 
 	return result, nil
 }
 
-func (s *CachedAuditor) cacheKey(u *neturl.URL) string {
+func (s *CachedAuditorProxy) cacheKey(u *neturl.URL) string {
 	return s.base.AuditorName() + ":" + u.String()
 }
 
-func (s *CachedAuditor) fetch(ctx context.Context, key string) *domain.ScanResult {
+func (s *CachedAuditorProxy) fetch(ctx context.Context, key string) *domain.ScanResult {
 	var result domain.ScanResult
 	err := s.cacher.Fetch(ctx, "auditor", key, &result)
 
@@ -86,7 +86,7 @@ func (s *CachedAuditor) fetch(ctx context.Context, key string) *domain.ScanResul
 	return nil
 }
 
-func (s *CachedAuditor) store(ctx context.Context, key string, result domain.ScanResult) {
+func (s *CachedAuditorProxy) store(ctx context.Context, key string, result domain.ScanResult) {
 	defer func() {
 		if r := recover(); r != nil {
 			// #nosec G706
@@ -112,13 +112,13 @@ func (s *CachedAuditor) store(ctx context.Context, key string, result domain.Sca
 	}
 }
 
-func (s *CachedAuditor) isCacheAvailable() bool {
+func (s *CachedAuditorProxy) isCacheAvailable() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return time.Now().After(s.cacheDisabledUntil)
 }
 
-func (s *CachedAuditor) disableCache() {
+func (s *CachedAuditorProxy) disableCache() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.cacheDisabledUntil = time.Now().Add(s.breakDuration)

@@ -14,8 +14,8 @@ import (
 
 	seoDelivery "backend/internal/seo/delivery"
 	seoDomain "backend/internal/seo/domain"
+	seoDomainAuditors "backend/internal/seo/domain/auditors"
 	seoInfra "backend/internal/seo/infra"
-	"backend/internal/seo/infra/auditors"
 	seoUc "backend/internal/seo/usecase"
 )
 
@@ -25,13 +25,7 @@ func SetupCacher(cfg *config.Config) shared.Cacher {
 		return nil
 	}
 
-	cacher := shared.NewRedisCacher(cfg.RedisAddr)
-	if err := cacher.PingWithTimeout(3 * time.Second); err != nil {
-		slog.Error("bootstrap: redis ping failed, running without cache", "error", err)
-		return nil
-	}
-
-	return cacher
+	return shared.NewRedisCacher(cfg.RedisAddr, 3*time.Second)
 }
 
 func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.ScanHandler {
@@ -43,7 +37,7 @@ func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.Scan
 			return auditor
 		}
 
-		return auditors.NewCachedAuditor(
+		return seoInfra.NewCachedAuditor(
 			auditor,
 			cacher,
 			cfg.CacheTTL,
@@ -52,8 +46,8 @@ func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.Scan
 	}
 
 	auditors := []seoDomain.Auditor{
-		wrapWithCache(auditors.NewMetaAuditor()),
-		wrapWithCache(auditors.NewPerformanceAuditor()),
+		wrapWithCache(seoDomainAuditors.NewMetaAuditor()),
+		wrapWithCache(seoDomainAuditors.NewPerformanceAuditor()),
 	}
 
 	runner := seoInfra.NewParallelRunner(fetcher, auditors...)

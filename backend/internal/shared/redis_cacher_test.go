@@ -1,6 +1,7 @@
-package shared
+package shared_test
 
 import (
+	"backend/internal/shared"
 	"context"
 	"sync"
 	"testing"
@@ -16,8 +17,10 @@ func TestRedisCacher(t *testing.T) {
 	require.NoError(t, err)
 	defer mr.Close()
 
-	cacher := NewRedisCacher(mr.Addr())
-	defer cacher.Close()
+	cacher := shared.NewRedisCacher(mr.Addr(), time.Second)
+	close, err := cacher.Connect(context.Background())
+	require.NoError(t, err)
+	defer close()
 
 	ctx := context.Background()
 
@@ -72,15 +75,17 @@ func TestRedisCacher(t *testing.T) {
 	t.Run("Reliability_ConnectionLoss", func(t *testing.T) {
 		tmpMr, err := miniredis.Run()
 		assert.NoError(t, err)
+		addr := tmpMr.Addr()
 
-		tmpCacher := NewRedisCacher(tmpMr.Addr())
-
-		err = tmpCacher.PingWithTimeout(time.Second)
+		tmpCacher := shared.NewRedisCacher(addr, time.Second)
+		tmpClose, err := tmpCacher.Connect(context.Background())
 		assert.NoError(t, err)
+		_ = tmpClose()
 
 		tmpMr.Close()
 
-		err = tmpCacher.PingWithTimeout(time.Millisecond * 50)
+		failCacher := shared.NewRedisCacher(addr, 50*time.Millisecond)
+		_, err = failCacher.Connect(context.Background())
 		assert.Error(t, err)
 	})
 
@@ -93,7 +98,7 @@ func TestRedisCacher(t *testing.T) {
 
 		var res string
 		err = cacher.Fetch(ctx, "lifecycle", key, &res)
-		assert.ErrorIs(t, err, ErrCacheMiss)
+		assert.ErrorIs(t, err, shared.ErrCacheMiss)
 	})
 
 	t.Run("Lifecycle_ContextCancellation", func(t *testing.T) {

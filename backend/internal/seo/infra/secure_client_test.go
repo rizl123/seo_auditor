@@ -1,6 +1,7 @@
-package infra
+package infra_test
 
 import (
+	"backend/internal/seo/infra"
 	"context"
 	"fmt"
 	"net"
@@ -15,14 +16,14 @@ import (
 )
 
 func TestSecureClient_Hardcore(t *testing.T) {
-	oldValidator := ipValidator
-	defer func() { ipValidator = oldValidator }()
+	oldValidator := infra.IpValidator
+	defer func() { infra.IpValidator = oldValidator }()
 
-	secureClient := CreateSecureClient()
-	fetcher := NewWebFetcher(secureClient)
+	secureClient := infra.CreateSecureClient()
+	fetcher := infra.NewWebFetcher(secureClient)
 
 	t.Run("Security: SSRF Protection", func(t *testing.T) {
-		ipValidator = oldValidator
+		infra.IpValidator = oldValidator
 
 		forbiddenIPs := []string{
 			"http://127.0.0.1:8080",
@@ -42,7 +43,7 @@ func TestSecureClient_Hardcore(t *testing.T) {
 	})
 
 	t.Run("Resilience: Request Timeout", func(t *testing.T) {
-		ipValidator = func(ip net.IP) bool { return true }
+		infra.IpValidator = func(ip net.IP) bool { return true }
 
 		slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(100 * time.Millisecond)
@@ -60,7 +61,7 @@ func TestSecureClient_Hardcore(t *testing.T) {
 	})
 
 	t.Run("Parsing: Malformed HTML & Limits", func(t *testing.T) {
-		ipValidator = func(ip net.IP) bool { return true }
+		infra.IpValidator = func(ip net.IP) bool { return true }
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/html")
@@ -82,7 +83,7 @@ func TestSecureClient_Hardcore(t *testing.T) {
 	})
 
 	t.Run("Network: User-Agent Spoofing", func(t *testing.T) {
-		ipValidator = func(ip net.IP) bool { return true }
+		infra.IpValidator = func(ip net.IP) bool { return true }
 
 		uaChan := make(chan string, 1)
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

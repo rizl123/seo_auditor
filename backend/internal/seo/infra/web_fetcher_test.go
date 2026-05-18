@@ -1,6 +1,7 @@
-package infra
+package infra_test
 
 import (
+	"backend/internal/seo/infra"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -29,7 +30,7 @@ func TestWebFetcher_Scan(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewWebFetcher(http.DefaultClient)
+	fetcher := infra.NewWebFetcher(http.DefaultClient)
 
 	targetURL, _ := url.Parse(server.URL)
 	report, err := fetcher.Scan(context.Background(), targetURL)

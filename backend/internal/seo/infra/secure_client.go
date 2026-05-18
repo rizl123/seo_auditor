@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var ipValidator = func(ip net.IP) bool {
+var IpValidator = func(ip net.IP) bool {
 	return !ip.IsPrivate() && !ip.IsLoopback() && !ip.IsLinkLocalUnicast()
 }
 
@@ -39,7 +39,7 @@ func CreateSecureClient() *http.Client {
 				}
 
 				resIP := ips[0]
-				if !ipValidator(resIP) {
+				if !IpValidator(resIP) {
 					return nil, fmt.Errorf("access to restricted IP denied: %s", resIP)
 				}
 

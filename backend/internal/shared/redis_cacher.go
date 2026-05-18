@@ -12,18 +12,42 @@ import (
 )
 
 type RedisCacher struct {
-	Client *redis.Client
+	addr             string
+	firstPingTimeout time.Duration
+	client           *redis.Client
 }
 
-func NewRedisCacher(addr string) *RedisCacher {
+func NewRedisCacher(addr string, firstPingTimeout time.Duration) *RedisCacher {
 	return &RedisCacher{
-		Client: redis.NewClient(&redis.Options{Addr: addr}),
+		addr:             addr,
+		firstPingTimeout: firstPingTimeout,
 	}
+}
+
+func (r *RedisCacher) Connect(ctx context.Context) (func() error, error) {
+	r.client = redis.NewClient(&redis.Options{Addr: r.addr})
+	timeoutCtx, cancel := context.WithTimeout(ctx, r.firstPingTimeout)
+	defer cancel()
+
+	err := r.client.Ping(timeoutCtx).Err()
+	if err != nil {
+		return nil, fmt.Errorf("redis: ping failed: %w", err)
+	}
+
+	close := func() error {
+		if r.client != nil {
+			return r.client.Close()
+		}
+
+		return nil
+	}
+
+	return close, nil
 }
 
 func (r *RedisCacher) Fetch(ctx context.Context, group string, key string, obj any) error {
 	fullKey := group + ":" + key
-	cached, err := r.Client.Get(ctx, fullKey).Result()
+	cached, err := r.client.Get(ctx, fullKey).Result()
 
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
@@ -49,31 +73,10 @@ func (r *RedisCacher) Store(ctx context.Context, group string, key string, obj a
 		return fmt.Errorf("marshal: %w", err)
 	}
 
-	err = r.Client.Set(ctx, fullKey, b, ttl).Err()
+	err = r.client.Set(ctx, fullKey, b, ttl).Err()
 	if err != nil {
 		slog.Error("redis: set failed", "key", fullKey, "error", err)
 		return fmt.Errorf("redis: store failed: %w", err)
-	}
-
-	return nil
-}
-
-func (r *RedisCacher) PingWithTimeout(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	err := r.Client.Ping(ctx).Err()
-	if err != nil {
-		return fmt.Errorf("redis: ping failed: %w", err)
-	}
-
-	return nil
-}
-
-func (r *RedisCacher) Close() error {
-	err := r.Client.Close()
-	if err != nil {
-		return fmt.Errorf("redis: close failed: %w", err)
 	}
 
 	return nil

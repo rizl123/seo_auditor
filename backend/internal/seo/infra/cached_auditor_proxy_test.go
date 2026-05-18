@@ -1,7 +1,8 @@
-package auditors
+package infra_test
 
 import (
 	"backend/internal/seo/domain"
+	"backend/internal/seo/infra"
 	"backend/internal/shared"
 	"context"
 	"net/url"
@@ -13,6 +14,14 @@ import (
 )
 
 type MockCacher struct{ mock.Mock }
+
+func (m *MockCacher) Connect(ctx context.Context) (func() error, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return func() error { return nil }, args.Error(1)
+	}
+	return args.Get(0).(func() error), args.Error(1)
+}
 
 func (m *MockCacher) Fetch(ctx context.Context, group string, key string, obj any) error {
 	args := m.Called(ctx, group, key, obj)
@@ -29,9 +38,6 @@ func (m *MockCacher) Store(ctx context.Context, group string, key string, obj an
 	return m.Called(ctx, group, key, obj, ttl).Error(0)
 }
 
-func (m *MockCacher) PingWithTimeout(d time.Duration) error { return m.Called(d).Error(0) }
-func (m *MockCacher) Close() error                          { return m.Called().Error(0) }
-
 type MockAuditor struct{ mock.Mock }
 
 func (m *MockAuditor) AuditorName() string { return "test-auditor" }
@@ -43,7 +49,7 @@ func (m *MockAuditor) Analyze(ctx context.Context, report *domain.PageReport) (*
 	return args.Get(0).(*domain.ScanResult), args.Error(1)
 }
 
-func TestCachedAuditor_Analyze_Logic(t *testing.T) {
+func TestCachedAuditorProxy_Analyze_Logic(t *testing.T) {
 	ctx := context.Background()
 	targetURL, _ := url.Parse("https://example.com")
 
@@ -58,7 +64,7 @@ func TestCachedAuditor_Analyze_Logic(t *testing.T) {
 
 	t.Run("CacheHit", func(t *testing.T) {
 		mC, mA := new(MockCacher), new(MockAuditor)
-		auditor := NewCachedAuditor(mA, mC, time.Hour, time.Minute)
+		auditor := infra.NewCachedAuditor(mA, mC, time.Hour, time.Minute)
 
 		mC.On("Fetch", ctx, "auditor", cacheKey, mock.AnythingOfType("*domain.ScanResult")).
 			Return(nil, result)
@@ -72,7 +78,7 @@ func TestCachedAuditor_Analyze_Logic(t *testing.T) {
 
 	t.Run("CacheMiss_StoreSuccess", func(t *testing.T) {
 		mC, mA := new(MockCacher), new(MockAuditor)
-		auditor := NewCachedAuditor(mA, mC, time.Hour, time.Minute)
+		auditor := infra.NewCachedAuditor(mA, mC, time.Hour, time.Minute)
 
 		mC.On("Fetch", ctx, "auditor", cacheKey, mock.Anything).Return(shared.ErrCacheMiss)
 		mA.On("Analyze", ctx, report).Return(result, nil)

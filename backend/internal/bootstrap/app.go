@@ -41,6 +41,15 @@ func (a *App) Run() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	close, err := a.cacher.Connect(ctx)
+	if err != nil {
+		slog.Error("bootstrap: redis ping failed, running without cache", "error", err)
+	}
+	defer func() {
+		err := close()
+		slog.Error("Error closing cacher", "error", err)
+	}()
+
 	go func() {
 		slog.Info("Server starting", "port", a.config.AppPort)
 
@@ -58,12 +67,6 @@ func (a *App) Run() {
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("Server forced to shutdown", "error", err)
-	}
-
-	if a.cacher != nil {
-		if err := a.cacher.Close(); err != nil {
-			slog.Error("Error closing cacher", "error", err)
-		}
 	}
 
 	slog.Info("Server exiting")

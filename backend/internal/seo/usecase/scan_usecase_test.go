@@ -1,7 +1,8 @@
-package usecase
+package usecase_test
 
 import (
 	"backend/internal/seo/domain"
+	"backend/internal/seo/usecase"
 	"context"
 	"net/url"
 	"testing"
@@ -22,7 +23,7 @@ func (m *MockRunnner) Run(ctx context.Context, url *url.URL) (*domain.Aggregated
 
 func TestScanUsecase_Execute(t *testing.T) {
 	mockRunner := new(MockRunnner)
-	uc := NewScanUsecase(mockRunner)
+	uc := usecase.NewScanUsecase(mockRunner)
 
 	targetURL, _ := url.Parse("https://test.com")
 
