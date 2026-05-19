@@ -38,9 +38,9 @@ func (s *CachedAuditorProxy) AuditorName() string {
 	return s.base.AuditorName()
 }
 
-func (s *CachedAuditorProxy) Analyze(ctx context.Context, report *domain.PageReport) (*domain.ScanResult, error) {
+func (s *CachedAuditorProxy) Analyze(ctx context.Context, raw *domain.RawData) (*domain.AuditResult, error) {
 	cacheAvailable := s.isCacheAvailable()
-	cacheKey := s.cacheKey(report.URL)
+	cacheKey := s.cacheKey(raw.URL)
 
 	if cacheAvailable {
 		if result := s.fetch(ctx, cacheKey); result != nil {
@@ -48,7 +48,7 @@ func (s *CachedAuditorProxy) Analyze(ctx context.Context, report *domain.PageRep
 		}
 	}
 
-	result, err := s.base.Analyze(ctx, report)
+	result, err := s.base.Analyze(ctx, raw)
 	if err != nil {
 		return nil, fmt.Errorf("infra: auditor %q failed: %w", s.AuditorName(), err)
 	}
@@ -65,8 +65,8 @@ func (s *CachedAuditorProxy) cacheKey(u *neturl.URL) string {
 	return s.base.AuditorName() + ":" + u.String()
 }
 
-func (s *CachedAuditorProxy) fetch(ctx context.Context, key string) *domain.ScanResult {
-	var result domain.ScanResult
+func (s *CachedAuditorProxy) fetch(ctx context.Context, key string) *domain.AuditResult {
+	var result domain.AuditResult
 	err := s.cacher.Fetch(ctx, "auditor", key, &result)
 
 	if err == nil {
@@ -86,7 +86,7 @@ func (s *CachedAuditorProxy) fetch(ctx context.Context, key string) *domain.Scan
 	return nil
 }
 
-func (s *CachedAuditorProxy) store(ctx context.Context, key string, result domain.ScanResult) {
+func (s *CachedAuditorProxy) store(ctx context.Context, key string, result domain.AuditResult) {
 	defer func() {
 		if r := recover(); r != nil {
 			// #nosec G706

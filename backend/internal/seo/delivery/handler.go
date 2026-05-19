@@ -22,7 +22,7 @@ type ScanInput struct {
 }
 
 type ScanOutput struct {
-	Body *AggregatedReportDTO
+	Body *PageReportDTO
 }
 
 func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOutput, error) {
@@ -34,11 +34,8 @@ func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOu
 
 	report, err := h.usecase.Execute(ctx, url)
 	if err != nil {
-		return nil, huma.Error500InternalServerError(
-			"errors.internal_error",
-			fmt.Errorf("errors.try_later"),
-		)
+		return nil, huma.Error500InternalServerError("errors.internal_error", fmt.Errorf("errors.try_later"))
 	}
 
-	return &ScanOutput{Body: ToAggregatedReportDTO(report)}, nil
+	return &ScanOutput{Body: ToPageReportDTO(report)}, nil
 }

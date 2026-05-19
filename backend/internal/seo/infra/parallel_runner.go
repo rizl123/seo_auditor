@@ -21,13 +21,13 @@ func NewParallelRunner(base domain.Fetcher, auditors ...domain.Auditor) *Paralle
 	}
 }
 
-func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.AggregatedReport, error) {
-	pageReport, err := m.base.Scan(ctx, url)
+func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.PageReport, error) {
+	raw, err := m.base.Scan(ctx, url)
 	if err != nil {
 		return nil, fmt.Errorf("infra: base scan failed: %w", err)
 	}
 
-	results := make([]*domain.ScanResult, len(m.auditors))
+	results := make([]*domain.AuditResult, len(m.auditors))
 	var wg sync.WaitGroup
 
 	for i, auditor := range m.auditors {
@@ -43,7 +43,7 @@ func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.Aggr
 				}
 			}()
 
-			result, err := sc.Analyze(ctx, pageReport)
+			result, err := sc.Analyze(ctx, raw)
 			if err != nil {
 				slog.Warn("infra: auditor returned error, skipping",
 					"auditor", sc.AuditorName(),
@@ -58,14 +58,14 @@ func (m *ParallelRunner) Run(ctx context.Context, url *neturl.URL) (*domain.Aggr
 
 	wg.Wait()
 
-	filtered := make([]domain.ScanResult, 0, len(m.auditors))
+	filtered := make([]domain.AuditResult, 0, len(m.auditors))
 	for _, ptr := range results {
 		if ptr != nil {
 			filtered = append(filtered, *ptr)
 		}
 	}
 
-	return &domain.AggregatedReport{
+	return &domain.PageReport{
 		URL:     url,
 		Results: filtered,
 	}, nil

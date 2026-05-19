@@ -5,12 +5,12 @@ import (
 	"time"
 )
 
-type AggregatedReportDTO struct {
-	URL     string          `json:"url"`
-	Results []ScanResultDTO `json:"results"`
+type PageReportDTO struct {
+	URL     string           `json:"url"`
+	Results []AuditResultDTO `json:"results"`
 }
 
-type ScanResultDTO struct {
+type AuditResultDTO struct {
 	AuditorName   string          `json:"auditor_name"`
 	I18nNamespace string          `json:"i18n_namespace"`
 	Details       []DetailItemDTO `json:"details,omitempty"`
@@ -36,57 +36,69 @@ type ResourceDTO struct {
 	URL   string `json:"url"`
 }
 
-func ToAggregatedReportDTO(report *domain.AggregatedReport) *AggregatedReportDTO {
-	if report == nil {
+func ToPageReportDTO(r *domain.PageReport) *PageReportDTO {
+	if r == nil {
 		return nil
 	}
 
-	dto := &AggregatedReportDTO{
-		URL:     report.URL.String(),
-		Results: make([]ScanResultDTO, len(report.Results)),
+	dto := &PageReportDTO{
+		URL:     r.URL.String(),
+		Results: make([]AuditResultDTO, len(r.Results)),
 	}
 
-	for i, r := range report.Results {
-		dto.Results[i] = toScanResultDTO(r)
+	for i, r := range r.Results {
+		dto.Results[i] = ToAuditResultDTO(r)
 	}
 
 	return dto
 }
 
-func toScanResultDTO(r domain.ScanResult) ScanResultDTO {
-	details := make([]DetailItemDTO, len(r.Details))
-	for i, d := range r.Details {
-		details[i] = DetailItemDTO{
-			I18nLabel: d.I18nLabel,
-			Value:     d.Value,
-			Type:      d.Type,
-		}
+func ToAuditResultDTO(a domain.AuditResult) AuditResultDTO {
+	dto := AuditResultDTO{
+		AuditorName:   a.AuditorName,
+		I18nNamespace: a.I18nNamespace,
+		Details:       make([]DetailItemDTO, len(a.Details)),
+		IsCached:      a.IsCached,
+		ScannedAt:     a.ScannedAt,
+		Problems:      make([]ProblemDTO, len(a.Problems)),
 	}
 
-	problems := make([]ProblemDTO, len(r.Problems))
-	for i, p := range r.Problems {
-		problems[i] = toProblemDTO(p)
+	for i, d := range a.Details {
+		dto.Details[i] = ToDetailItemDTO(d)
 	}
 
-	return ScanResultDTO{
-		AuditorName:   r.AuditorName,
-		I18nNamespace: r.I18nNamespace,
-		Details:       details,
-		IsCached:      r.IsCached,
-		ScannedAt:     r.ScannedAt,
-		Problems:      problems,
+	for i, p := range a.Problems {
+		dto.Problems[i] = ToProblemDTO(p)
+	}
+
+	return dto
+}
+
+func ToDetailItemDTO(d domain.Detail) DetailItemDTO {
+	return DetailItemDTO{
+		I18nLabel: d.I18nLabel,
+		Value:     d.Value,
+		Type:      d.Type,
 	}
 }
 
-func toProblemDTO(p domain.Problem) ProblemDTO {
-	resources := make([]ResourceDTO, len(p.Resources))
-	for i, r := range p.Resources {
-		resources[i] = ResourceDTO{Title: r.Title, URL: r.URL}
-	}
-
-	return ProblemDTO{
+func ToProblemDTO(p domain.Problem) ProblemDTO {
+	dto := ProblemDTO{
 		I18nNamespace:   p.I18nNamespace,
 		DescriptionVars: p.DescriptionVars,
-		Resources:       resources,
+		Resources:       make([]ResourceDTO, len(p.Resources)),
+	}
+
+	for i, r := range p.Resources {
+		dto.Resources[i] = ToResourceDTO(r)
+	}
+
+	return dto
+}
+
+func ToResourceDTO(r domain.Resource) ResourceDTO {
+	return ResourceDTO{
+		Title: r.Title,
+		URL:   r.URL.String(),
 	}
 }

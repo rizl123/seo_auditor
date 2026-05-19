@@ -25,13 +25,13 @@ func TestPerformanceAuditor_Analyze(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		report        *domain.PageReport
+		raw           *domain.RawData
 		expectedProbs []string
 		expectedVars  map[string]map[string]any
 	}{
 		{
 			name: "Valid 200 OK and Fast Response",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Status:  200,
 				Network: validNetwork(),
 			},
@@ -39,7 +39,7 @@ func TestPerformanceAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "Slow Response TTFB",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Status: 200,
 				Network: func() *domain.NetworkInfo {
 					n := validNetwork()
@@ -54,7 +54,7 @@ func TestPerformanceAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "Warning Response TTFB",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Status: 200,
 				Network: func() *domain.NetworkInfo {
 					n := validNetwork()
@@ -69,7 +69,7 @@ func TestPerformanceAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "Non-200 HTTP Status",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Status:  503,
 				Network: validNetwork(),
 			},
@@ -80,7 +80,7 @@ func TestPerformanceAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "Unexpected Content-Type",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Status: 200,
 				Network: func() *domain.NetworkInfo {
 					n := validNetwork()
@@ -97,7 +97,7 @@ func TestPerformanceAuditor_Analyze(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := auditor.Analyze(context.Background(), tt.report)
+			result, err := auditor.Analyze(context.Background(), tt.raw)
 			require.NoError(t, err)
 
 			actualProbNames := make([]string, 0, len(result.Problems))

@@ -26,13 +26,13 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		report        *domain.PageReport
+		raw           *domain.RawData
 		expectedProbs []string
 		expectedVars  map[string]map[string]any
 	}{
 		{
 			name: "Critical: Metadata is nil",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Status:   404,
 				Metadata: nil,
 			},
@@ -43,7 +43,7 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "Title: Empty string",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
 					m.Title = ""
@@ -55,7 +55,7 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "Title: Too short",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
 					m.Title = "Title that is exactly 29 chr"
@@ -69,7 +69,7 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "Title: Too long",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
 					m.Title = "This title is exactly sixty-one characters long for testing.."
@@ -83,7 +83,7 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "Description: Empty",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
 					m.Description = ""
@@ -94,7 +94,7 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "Description: Too long",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
 					m.Description = "This is a very long description. It needs to exceed one hundred and sixty characters to trigger the auditor. So we keep writing and writing until we are absolutely sure the limit is passed."
@@ -108,7 +108,7 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "Canonical and OgImage: Missing",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
 					m.Canonical = ""
@@ -123,7 +123,7 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "H1: Missing",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
 					m.H1 = []string{}
@@ -134,7 +134,7 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 		},
 		{
 			name: "H1: Multiple",
-			report: &domain.PageReport{
+			raw: &domain.RawData{
 				Metadata: func() *domain.Metadata {
 					m := validMeta()
 					m.H1 = []string{"First", "Second", "Third"}
@@ -150,7 +150,7 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := auditor.Analyze(context.Background(), tt.report)
+			result, err := auditor.Analyze(context.Background(), tt.raw)
 			require.NoError(t, err)
 
 			actualProbNames := make([]string, 0, len(result.Problems))

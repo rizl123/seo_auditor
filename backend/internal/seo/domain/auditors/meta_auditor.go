@@ -12,8 +12,8 @@ func NewMetaAuditor() *MetaAuditor { return &MetaAuditor{} }
 
 func (s *MetaAuditor) AuditorName() string { return "meta" }
 
-func (s *MetaAuditor) Analyze(_ context.Context, report *domain.PageReport) (*domain.ScanResult, error) {
-	result := &domain.ScanResult{
+func (s *MetaAuditor) Analyze(_ context.Context, raw *domain.RawData) (*domain.AuditResult, error) {
+	result := &domain.AuditResult{
 		AuditorName:   s.AuditorName(),
 		I18nNamespace: "auditors.meta",
 		Details:       []domain.Detail{},
@@ -21,18 +21,18 @@ func (s *MetaAuditor) Analyze(_ context.Context, report *domain.PageReport) (*do
 		ScannedAt:     time.Now(),
 	}
 
-	if report.Metadata == nil {
-		s.handleMissingMetadata(result, report.Status)
+	if raw.Metadata == nil {
+		s.handleMissingMetadata(result, raw.Status)
 		return result, nil
 	}
 
-	meta := report.Metadata
+	meta := raw.Metadata
 	result.Details = append(result.Details,
-		domain.Detail{I18nLabel: "auditors.meta.labels.title", Value: meta.Title, Type: domain.DetailTypeText},
-		domain.Detail{I18nLabel: "auditors.meta.labels.description", Value: meta.Description, Type: domain.DetailTypeText},
-		domain.Detail{I18nLabel: "auditors.meta.labels.canonical", Value: meta.Canonical, Type: domain.DetailTypeURL},
-		domain.Detail{I18nLabel: "auditors.meta.labels.og_image", Value: meta.OgImage, Type: domain.DetailTypeImage},
-		domain.Detail{I18nLabel: "auditors.meta.labels.h1_count", Value: len(meta.H1), Type: domain.DetailTypeNumber},
+		domain.NewDetail("auditors.meta.labels.title", meta.Title, domain.DetailTypeText),
+		domain.NewDetail("auditors.meta.labels.description", meta.Description, domain.DetailTypeText),
+		domain.NewDetail("auditors.meta.labels.canonical", meta.Canonical, domain.DetailTypeURL),
+		domain.NewDetail("auditors.meta.labels.og_image", meta.OgImage, domain.DetailTypeImage),
+		domain.NewDetail("auditors.meta.labels.h1_count", len(meta.H1), domain.DetailTypeNumber),
 	)
 
 	s.checkTitle(result, meta.Title)
@@ -49,7 +49,7 @@ func (s *MetaAuditor) Analyze(_ context.Context, report *domain.PageReport) (*do
 	return result, nil
 }
 
-func (s *MetaAuditor) handleMissingMetadata(result *domain.ScanResult, status int) {
+func (s *MetaAuditor) handleMissingMetadata(result *domain.AuditResult, status int) {
 	descVars := make(map[string]any)
 	descVars["status"] = status
 
@@ -57,12 +57,12 @@ func (s *MetaAuditor) handleMissingMetadata(result *domain.ScanResult, status in
 		I18nNamespace:   "auditors.meta.problems.unavailable",
 		DescriptionVars: descVars,
 		Resources: []domain.Resource{
-			{Title: "HTTP Status Codes", URL: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status"},
+			domain.NewRes("HTTP Status Codes", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status"),
 		},
 	})
 }
 
-func (s *MetaAuditor) checkTitle(result *domain.ScanResult, title string) {
+func (s *MetaAuditor) checkTitle(result *domain.AuditResult, title string) {
 	length := len(title)
 
 	descVars := make(map[string]any)
@@ -73,8 +73,11 @@ func (s *MetaAuditor) checkTitle(result *domain.ScanResult, title string) {
 		result.Problems = append(result.Problems, domain.Problem{
 			I18nNamespace: "auditors.meta.problems.missing_title",
 			Resources: []domain.Resource{
-				{Title: "Google: Title tag best practices", URL: "https://developers.google.com/search/docs/appearance/title-link"},
-				{Title: "MDN: <title>", URL: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title"},
+				domain.NewRes(
+					"Google: Title tag best practices",
+					"https://developers.google.com/search/docs/appearance/title-link",
+				),
+				domain.NewRes("MDN: <title>", "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/title"),
 			},
 		})
 	case length < 30:
@@ -82,7 +85,7 @@ func (s *MetaAuditor) checkTitle(result *domain.ScanResult, title string) {
 			I18nNamespace:   "auditors.meta.problems.title_too_short",
 			DescriptionVars: descVars,
 			Resources: []domain.Resource{
-				{Title: "Moz: Title Tag", URL: "https://moz.com/learn/seo/title-tag"},
+				domain.NewRes("Moz: Title Tag", "https://moz.com/learn/seo/title-tag"),
 			},
 		})
 	case length > 60:
@@ -90,21 +93,24 @@ func (s *MetaAuditor) checkTitle(result *domain.ScanResult, title string) {
 			I18nNamespace:   "auditors.meta.problems.title_too_long",
 			DescriptionVars: descVars,
 			Resources: []domain.Resource{
-				{Title: "Google: Title link documentation", URL: "https://developers.google.com/search/docs/appearance/title-link"},
+				domain.NewRes(
+					"Google: Title link documentation",
+					"https://developers.google.com/search/docs/appearance/title-link",
+				),
 			},
 		})
 	}
 }
 
-func (s *MetaAuditor) checkDescription(result *domain.ScanResult, desc string) {
+func (s *MetaAuditor) checkDescription(result *domain.AuditResult, desc string) {
 	length := len(desc)
 
 	if desc == "" {
 		result.Problems = append(result.Problems, domain.Problem{
 			I18nNamespace: "auditors.meta.problems.missing_description",
 			Resources: []domain.Resource{
-				{Title: "Google: Meta description", URL: "https://developers.google.com/search/docs/appearance/snippet"},
-				{Title: "Ahrefs: Meta description guide", URL: "https://ahrefs.com/blog/meta-description/"},
+				domain.NewRes("Google: Meta description", "https://developers.google.com/search/docs/appearance/snippet"),
+				domain.NewRes("Ahrefs: Meta description guide", "https://ahrefs.com/blog/meta-description/"),
 			},
 		})
 	} else if length > 160 {
@@ -115,20 +121,20 @@ func (s *MetaAuditor) checkDescription(result *domain.ScanResult, desc string) {
 			I18nNamespace:   "auditors.meta.problems.description_too_long",
 			DescriptionVars: descVars,
 			Resources: []domain.Resource{
-				{Title: "Ahrefs: Meta description length", URL: "https://ahrefs.com/blog/meta-description/"},
+				domain.NewRes("Ahrefs: Meta description length", "https://ahrefs.com/blog/meta-description/"),
 			},
 		})
 	}
 }
 
-func (s *MetaAuditor) checkHeadings(result *domain.ScanResult, h1s []string) {
+func (s *MetaAuditor) checkHeadings(result *domain.AuditResult, h1s []string) {
 	count := len(h1s)
 	if count == 0 {
 		result.Problems = append(result.Problems, domain.Problem{
 			I18nNamespace: "auditors.meta.problems.missing_h1",
 			Resources: []domain.Resource{
-				{Title: "Google on headings", URL: "https://developers.google.com/search/docs/appearance/visual-elements-gallery"},
-				{Title: "Moz: H1 tag", URL: "https://moz.com/learn/seo/on-page-factors"},
+				domain.NewRes("Google on headings", "https://developers.google.com/search/docs/appearance/visual-elements-gallery"),
+				domain.NewRes("Moz: H1 tag", "https://moz.com/learn/seo/on-page-factors"),
 			},
 		})
 	} else if count > 1 {
@@ -139,7 +145,7 @@ func (s *MetaAuditor) checkHeadings(result *domain.ScanResult, h1s []string) {
 			I18nNamespace:   "auditors.meta.problems.multiple_h1",
 			DescriptionVars: descVars,
 			Resources: []domain.Resource{
-				{Title: "Ahrefs: How many H1 tags?", URL: "https://ahrefs.com/blog/h1-tag/"},
+				domain.NewRes("Ahrefs: How many H1 tags?", "https://ahrefs.com/blog/h1-tag/"),
 			},
 		})
 	}
@@ -149,11 +155,11 @@ func (s *MetaAuditor) problemMissingCanonical() domain.Problem {
 	return domain.Problem{
 		I18nNamespace: "auditors.meta.problems.missing_canonical",
 		Resources: []domain.Resource{
-			{
-				Title: "Google: Canonical tag",
-				URL:   "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
-			},
-			{Title: "Moz: Canonical URL", URL: "https://moz.com/learn/seo/canonicalization"},
+			domain.NewRes(
+				"Google: Canonical tag",
+				"https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
+			),
+			domain.NewRes("Moz: Canonical URL", "https://moz.com/learn/seo/canonicalization"),
 		},
 	}
 }
@@ -162,8 +168,8 @@ func (s *MetaAuditor) problemMissingOgImage() domain.Problem {
 	return domain.Problem{
 		I18nNamespace: "auditors.meta.problems.missing_og_image",
 		Resources: []domain.Resource{
-			{Title: "Open Graph protocol", URL: "https://ogp.me/"},
-			{Title: "Opengraph.xyz preview tool", URL: "https://www.opengraph.xyz/"},
+			domain.NewRes("Open Graph protocol", "https://ogp.me/"),
+			domain.NewRes("Opengraph.xyz preview tool", "https://www.opengraph.xyz/"),
 		},
 	}
 }

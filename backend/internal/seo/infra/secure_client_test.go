@@ -72,12 +72,12 @@ func TestSecureClient_Hardcore(t *testing.T) {
 		defer ts.Close()
 
 		u, _ := url.Parse(ts.URL)
-		report, err := fetcher.Scan(context.Background(), u)
+		raw, err := fetcher.Scan(context.Background(), u)
 
 		require.NoError(t, err)
-		assert.Equal(t, "Correct Title", report.Metadata.Title)
-		assert.Contains(t, report.Metadata.H1, "Header 1")
-		for _, h := range report.Metadata.H1 {
+		assert.Equal(t, "Correct Title", raw.Metadata.Title)
+		assert.Contains(t, raw.Metadata.H1, "Header 1")
+		for _, h := range raw.Metadata.H1 {
 			assert.NotEqual(t, "Hidden Header", h)
 		}
 	})

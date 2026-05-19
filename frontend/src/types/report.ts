@@ -17,7 +17,7 @@ export interface Problem {
   resources: Resource[];
 }
 
-export interface ScanResult {
+export interface AuditResult {
   auditor_name: string;
   i18n_namespace: string;
   details: DetailItem[];
@@ -28,5 +28,5 @@ export interface ScanResult {
 
 export interface PageReport {
   url: string;
-  results: ScanResult[];
+  results: AuditResult[];
 }

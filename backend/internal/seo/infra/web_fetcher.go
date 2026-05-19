@@ -21,7 +21,7 @@ func NewWebFetcher(client *http.Client) *WebFetcher {
 	return &WebFetcher{client: client}
 }
 
-func (s *WebFetcher) Scan(ctx context.Context, url *neturl.URL) (*domain.PageReport, error) {
+func (s *WebFetcher) Scan(ctx context.Context, url *neturl.URL) (*domain.RawData, error) {
 	req, _ := http.NewRequestWithContext(ctx, "GET", url.String(), nil)
 	req.Header.Set("User-Agent", "SiteInspector/1.0")
 
@@ -35,7 +35,7 @@ func (s *WebFetcher) Scan(ctx context.Context, url *neturl.URL) (*domain.PageRep
 		_ = res.Body.Close()
 	}()
 
-	report := &domain.PageReport{
+	raw := &domain.RawData{
 		URL: url, Status: res.StatusCode, ScannedAt: time.Now(),
 		Network: &domain.NetworkInfo{
 			ResponseTime: time.Since(start),
@@ -45,9 +45,9 @@ func (s *WebFetcher) Scan(ctx context.Context, url *neturl.URL) (*domain.PageRep
 	}
 
 	if res.StatusCode == http.StatusOK {
-		report.Metadata = s.parse(io.LimitReader(res.Body, 1024*512))
+		raw.Metadata = s.parse(io.LimitReader(res.Body, 1024*512))
 	}
-	return report, nil
+	return raw, nil
 }
 
 func (s *WebFetcher) parse(r io.Reader) *domain.Metadata {

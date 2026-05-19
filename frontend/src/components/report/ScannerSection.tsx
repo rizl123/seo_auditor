@@ -2,12 +2,12 @@ import { Clock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Card } from "@/components/Card";
 import { ImageLoader } from "@/components/ImageLoader";
-import type { ScanResult } from "@/types/report";
+import type { AuditResult } from "@/types/report";
 import { DetailItemComponent } from "./DetailItemComponent";
 import { ProblemItem } from "./ProblemItem";
 
 interface ScannerSectionProps {
-  result: ScanResult;
+  result: AuditResult;
 }
 
 export function ScannerSection({ result }: ScannerSectionProps) {

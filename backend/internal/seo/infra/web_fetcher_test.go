@@ -33,13 +33,13 @@ func TestWebFetcher_Scan(t *testing.T) {
 	fetcher := infra.NewWebFetcher(http.DefaultClient)
 
 	targetURL, _ := url.Parse(server.URL)
-	report, err := fetcher.Scan(context.Background(), targetURL)
+	raw, err := fetcher.Scan(context.Background(), targetURL)
 
 	assert.NoError(t, err)
-	if assert.NotNil(t, report) {
-		assert.Equal(t, "Go Test Page", report.Metadata.Title)
-		assert.Equal(t, "SEO testing is fun", report.Metadata.Description)
-		assert.Len(t, report.Metadata.H1, 2)
-		assert.Equal(t, "Hello World", report.Metadata.H1[0])
+	if assert.NotNil(t, raw) {
+		assert.Equal(t, "Go Test Page", raw.Metadata.Title)
+		assert.Equal(t, "SEO testing is fun", raw.Metadata.Description)
+		assert.Len(t, raw.Metadata.H1, 2)
+		assert.Equal(t, "Hello World", raw.Metadata.H1[0])
 	}
 }
