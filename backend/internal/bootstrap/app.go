@@ -41,8 +41,13 @@ func (a *App) Run() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	close, err := a.cacher.Connect(ctx)
-	if err != nil {
+	close, err := (func() (func() error, error) {
+		if a.cacher != nil {
+			return a.cacher.Connect(ctx)
+		}
+		return nil, nil
+	})()
+	if close == nil || err != nil {
 		slog.Error("bootstrap: redis ping failed, running without cache", "error", err)
 	}
 	defer func() {

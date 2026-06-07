@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/url"
 
+	"golang.org/x/net/idna"
+
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -25,14 +27,33 @@ type ScanOutput struct {
 	Body *PageReportDTO
 }
 
-func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOutput, error) {
-	url, err := url.Parse(input.URL)
+func normalizeURL(raw string) (*url.URL, error) {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return nil, err
+	}
 
-	if err != nil || url.Scheme == "" || url.Host == "" {
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return nil, fmt.Errorf("missing scheme or host")
+	}
+
+	hostASCII, err := idna.ToASCII(parsed.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	parsed.Host = hostASCII
+	return parsed, nil
+}
+
+func (h *ScanHandler) HandleScan(ctx context.Context, input *ScanInput) (*ScanOutput, error) {
+
+	parsedURL, err := normalizeURL(input.URL)
+	if err != nil {
 		return nil, huma.Error400BadRequest("errors.invalid_url", fmt.Errorf("errors.url_format"))
 	}
 
-	report, err := h.usecase.Execute(ctx, url)
+	report, err := h.usecase.Execute(ctx, parsedURL)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("errors.internal_error", fmt.Errorf("errors.try_later"))
 	}

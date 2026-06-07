@@ -30,8 +30,11 @@ func SetupCacher(cfg *config.Config) shared.Cacher {
 
 func SetupSeoHandler(cfg *config.Config, cacher shared.Cacher) *seoDelivery.ScanHandler {
 	httpClient := seoInfra.CreateSecureClient()
-	f := seoInfra.NewSingleflightFetcherProxy(seoInfra.NewWebFetcher(httpClient))
-	fetcher := seoInfra.NewCachedFetcherProxy(f, cacher, cfg.CacheTTL)
+	var fetcher seoDomain.Fetcher
+	fetcher = seoInfra.NewSingleflightFetcherProxy(seoInfra.NewWebFetcher(httpClient))
+	if cacher != nil {
+		fetcher = seoInfra.NewCachedFetcherProxy(fetcher, cacher, cfg.CacheTTL)
+	}
 
 	wrapWithCache := func(auditor seoDomain.Auditor) seoDomain.Auditor {
 		if cacher == nil {
