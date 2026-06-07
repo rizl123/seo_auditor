@@ -16,7 +16,14 @@ type AuditResultDTO struct {
 	Details       []DetailItemDTO `json:"details,omitempty"`
 	Problems      []ProblemDTO    `json:"problems"`
 	IsCached      bool            `json:"is_cached"`
-	ScannedAt     time.Time       `json:"scanned_at"`
+	StartedAt     time.Time       `json:"started_at"`
+	FinishedAt    time.Time       `json:"finished_at"`
+	Fail          *AuditFailDTO   `json:"fail"`
+}
+
+type AuditFailDTO struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
 }
 
 type DetailItemDTO struct {
@@ -53,13 +60,14 @@ func ToPageReportDTO(r *domain.PageReport) *PageReportDTO {
 	return dto
 }
 
-func ToAuditResultDTO(a domain.AuditResult) AuditResultDTO {
+func ToAuditResultDTO(a *domain.AuditResult) AuditResultDTO {
 	dto := AuditResultDTO{
 		AuditorName:   a.AuditorName,
 		I18nNamespace: a.I18nNamespace,
 		Details:       make([]DetailItemDTO, len(a.Details)),
 		IsCached:      a.IsCached,
-		ScannedAt:     a.ScannedAt,
+		StartedAt:     a.StartedAt,
+		FinishedAt:    a.FinishedAt,
 		Problems:      make([]ProblemDTO, len(a.Problems)),
 	}
 
@@ -71,7 +79,18 @@ func ToAuditResultDTO(a domain.AuditResult) AuditResultDTO {
 		dto.Problems[i] = ToProblemDTO(p)
 	}
 
+	if a.Fail != nil {
+		dto.Fail = ToAuditFailDTO(a.Fail)
+	}
+
 	return dto
+}
+
+func ToAuditFailDTO(f *domain.AuditFail) *AuditFailDTO {
+	return &AuditFailDTO{
+		Title:       f.Title,
+		Description: f.Description,
+	}
 }
 
 func ToDetailItemDTO(d domain.Detail) DetailItemDTO {

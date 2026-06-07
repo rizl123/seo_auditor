@@ -3,6 +3,8 @@ package auditors
 import (
 	"backend/internal/seo/domain"
 	"context"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -12,100 +14,88 @@ const (
 	warnResponseThreshold = 800 * time.Millisecond
 )
 
-type PerformanceAuditor struct{}
+type PerformanceAuditor struct {
+	fetcher domain.Fetcher
+}
 
-func NewPerformanceAuditor() *PerformanceAuditor { return &PerformanceAuditor{} }
+func NewPerformanceAuditor(f domain.Fetcher) *PerformanceAuditor {
+	return &PerformanceAuditor{fetcher: f}
+}
 
-func (s *PerformanceAuditor) AuditorName() string { return "performance" }
+func (s *PerformanceAuditor) AuditorName() string   { return "performance" }
+func (s *PerformanceAuditor) I18nNamespace() string { return "auditors.performance" }
 
-func (s *PerformanceAuditor) Analyze(_ context.Context, raw *domain.RawData) (*domain.AuditResult, error) {
-	result := &domain.AuditResult{
-		AuditorName:   s.AuditorName(),
-		I18nNamespace: "auditors.performance",
-		Details:       []domain.Detail{},
-		Problems:      []domain.Problem{},
-		ScannedAt:     time.Now(),
+func (s *PerformanceAuditor) Analyze(ctx context.Context, url *url.URL) *domain.AuditResult {
+	result := domain.NewAuditResult(s)
+
+	raw, err := s.fetcher.Scan(ctx, url)
+
+	if err != nil {
+		result.Fail = &domain.AuditFail{
+			Title:       "errors.auditor_failed",
+			Description: "errors.try_later",
+		}
+
+		result.FinishedAt = time.Now()
+		return result
 	}
 
 	if raw.Network == nil {
-		return result, nil
+		result.FinishedAt = time.Now()
+		return result
 	}
 
 	net := raw.Network
 	result.Details = append(result.Details,
-		domain.NewDetail(
-			"auditors.performance.labels.response_time",
-			net.ResponseTime.Milliseconds(),
-			domain.DetailTypeDuration,
-		),
-		domain.NewDetail("auditors.performance.labels.status_code", raw.Status, domain.DetailTypeBadge),
-		domain.NewDetail("auditors.performance.labels.server_header", net.Server, domain.DetailTypeText),
-		domain.NewDetail("auditors.performance.labels.content_type", net.ContentType, domain.DetailTypeText),
+		domain.NewDurationDetail("auditors.performance.labels.response_time", net.ResponseTime),
+		domain.NewBadgeDetail("auditors.performance.labels.status_code", strconv.Itoa(raw.Status)),
+		domain.NewTextDetail("auditors.performance.labels.server_header", net.Server),
+		domain.NewTextDetail("auditors.performance.labels.content_type", net.ContentType),
 	)
 
 	s.checkResponseTime(result, net.ResponseTime)
 	s.checkStatusAndType(result, raw)
 
-	return result, nil
+	result.FinishedAt = time.Now()
+	return result
 }
 
 func (s *PerformanceAuditor) checkResponseTime(result *domain.AuditResult, rt time.Duration) {
-	descVars := make(map[string]any)
-	descVars["ms"] = rt.Milliseconds()
-
 	switch {
 	case rt > slowResponseThreshold:
-		result.Problems = append(result.Problems, domain.Problem{
-			I18nNamespace:   "auditors.performance.problems.slow_ttfb",
-			DescriptionVars: descVars,
-			Resources: []domain.Resource{
-				domain.NewRes("web.dev: Optimize TTFB", "https://web.dev/articles/optimize-ttfb"),
-				domain.NewRes(
-					"Google: Page speed and ranking",
-					"https://developers.google.com/search/blog/2010/04/using-site-speed-in-web-search-ranking",
-				),
-			},
-		})
+		problem := domain.NewProblem("auditors.performance.problems.slow_ttfb")
+		problem.AddResource("web.dev: Optimize TTFB", "https://web.dev/articles/optimize-ttfb")
+		problem.AddResource(
+			"Google: Page speed and ranking",
+			"https://developers.google.com/search/blog/2010/04/using-site-speed-in-web-search-ranking",
+		)
+		problem.AddInt64Var("ms", rt.Milliseconds())
+		result.Problems = append(result.Problems, problem)
 	case rt > warnResponseThreshold:
-		result.Problems = append(result.Problems, domain.Problem{
-			I18nNamespace:   "auditors.performance.problems.approaching_threshold",
-			DescriptionVars: descVars,
-			Resources: []domain.Resource{
-				domain.NewRes("web.dev: Optimize TTFB", "https://web.dev/articles/optimize-ttfb"),
-			},
-		})
+		problem := domain.NewProblem("auditors.performance.problems.approaching_threshold")
+		problem.AddResource("web.dev: Optimize TTFB", "https://web.dev/articles/optimize-ttfb")
+		problem.AddInt64Var("ms", rt.Milliseconds())
+		result.Problems = append(result.Problems, problem)
 	}
 }
 
 func (s *PerformanceAuditor) checkStatusAndType(result *domain.AuditResult, raw *domain.RawData) {
 	if raw.Status != 200 {
-		descVars := make(map[string]any)
-		descVars["status"] = raw.Status
-
-		result.Problems = append(result.Problems, domain.Problem{
-			I18nNamespace:   "auditors.performance.problems.non_200_status",
-			DescriptionVars: descVars,
-			Resources: []domain.Resource{
-				domain.NewRes(
-					"Google: HTTP status codes",
-					"https://developers.google.com/search/docs/crawling-indexing/http-network-errors",
-				),
-				domain.NewRes("MDN: HTTP response status codes", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status"),
-			},
-		})
+		problem := domain.NewProblem("auditors.performance.problems.non_200_status")
+		problem.AddResource(
+			"Google: HTTP status codes",
+			"https://developers.google.com/search/docs/crawling-indexing/http-network-errors",
+		)
+		problem.AddResource("MDN: HTTP response status codes", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status")
+		problem.AddIntVar("status", raw.Status)
+		result.Problems = append(result.Problems, problem)
 	}
 
 	net := raw.Network
 	if net.ContentType != "" && !strings.Contains(net.ContentType, "text/html") {
-		descVars := make(map[string]any)
-		descVars["type"] = net.ContentType
-
-		result.Problems = append(result.Problems, domain.Problem{
-			I18nNamespace:   "auditors.performance.problems.unexpected_content_type",
-			DescriptionVars: descVars,
-			Resources: []domain.Resource{
-				domain.NewRes("MDN: Content-Type", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type"),
-			},
-		})
+		problem := domain.NewProblem("auditors.performance.problems.unexpected_content_type")
+		problem.AddResource("MDN: Content-Type", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type")
+		problem.AddStringVar("type", net.ContentType)
+		result.Problems = append(result.Problems, problem)
 	}
 }

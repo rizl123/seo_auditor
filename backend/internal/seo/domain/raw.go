@@ -6,12 +6,11 @@ import (
 )
 
 type RawData struct {
-	URL       *url.URL
-	Status    int
-	IsCached  bool
-	ScannedAt time.Time
-	Metadata  *Metadata
-	Network   *NetworkInfo
+	URL      *url.URL
+	Status   int
+	IsCached bool
+	Metadata *Metadata
+	Network  *NetworkInfo
 }
 
 type Metadata struct {

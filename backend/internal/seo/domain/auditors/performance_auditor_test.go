@@ -12,16 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func validNetwork() *domain.NetworkInfo {
-	return &domain.NetworkInfo{
-		ResponseTime: 200 * time.Millisecond,
-		Server:       "nginx",
-		ContentType:  "text/html; charset=utf-8",
-	}
-}
-
 func TestPerformanceAuditor_Analyze(t *testing.T) {
-	auditor := auditors.NewPerformanceAuditor()
+	f := new(MockFetcher)
+	auditor := auditors.NewPerformanceAuditor(f)
 
 	tests := []struct {
 		name          string
@@ -97,8 +90,11 @@ func TestPerformanceAuditor_Analyze(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := auditor.Analyze(context.Background(), tt.raw)
-			require.NoError(t, err)
+			f.Response = tt.raw
+			f.Err = nil
+
+			result := auditor.Analyze(context.Background(), nil)
+			require.Nil(t, result.Fail)
 
 			actualProbNames := make([]string, 0, len(result.Problems))
 			probMap := make(map[string]domain.Problem)

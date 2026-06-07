@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type DetailType string
 
 const (
@@ -17,10 +19,50 @@ type Detail struct {
 	Type      DetailType
 }
 
-func NewDetail(label string, value any, dtype DetailType) Detail {
+func NewTextDetail(label string, value string) Detail {
 	return Detail{
 		I18nLabel: label,
 		Value:     value,
-		Type:      dtype,
+		Type:      DetailTypeText,
+	}
+}
+
+func NewNumberDetail(label string, value int) Detail {
+	return Detail{
+		I18nLabel: label,
+		Value:     value,
+		Type:      DetailTypeNumber,
+	}
+}
+
+func NewDurationDetail(label string, duration time.Duration) Detail {
+	return Detail{
+		I18nLabel: label,
+		Value:     duration.Milliseconds(),
+		Type:      DetailTypeDuration,
+	}
+}
+
+func NewURLDetail(label string, value string) Detail {
+	return Detail{
+		I18nLabel: label,
+		Value:     value,
+		Type:      DetailTypeURL,
+	}
+}
+
+func NewImageDetail(label string, value string) Detail {
+	return Detail{
+		I18nLabel: label,
+		Value:     value,
+		Type:      DetailTypeImage,
+	}
+}
+
+func NewBadgeDetail(label string, value string) Detail {
+	return Detail{
+		I18nLabel: label,
+		Value:     value,
+		Type:      DetailTypeBadge,
 	}
 }

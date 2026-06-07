@@ -11,18 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func validMeta() *domain.Metadata {
-	return &domain.Metadata{
-		Title:       "Valid Page Title that is more than 30 chars long",
-		Description: "A perfectly fine meta description that fits in the recommended range of length for SEO purposes.",
-		Canonical:   "https://example.com/page",
-		OgImage:     "https://example.com/img.jpg",
-		H1:          []string{"This is a single valid H1"},
-	}
-}
-
 func TestMetaAuditor_Analyze(t *testing.T) {
-	auditor := auditors.NewMetaAuditor()
+	f := new(MockFetcher)
+	auditor := auditors.NewMetaAuditor(f)
 
 	tests := []struct {
 		name          string
@@ -150,8 +141,11 @@ func TestMetaAuditor_Analyze(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := auditor.Analyze(context.Background(), tt.raw)
-			require.NoError(t, err)
+			f.Response = tt.raw
+			f.Err = nil
+
+			result := auditor.Analyze(context.Background(), nil)
+			require.Nil(t, result.Fail)
 
 			actualProbNames := make([]string, 0, len(result.Problems))
 			probMap := make(map[string]domain.Problem)

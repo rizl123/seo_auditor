@@ -17,7 +17,7 @@ export async function scanURL(url: string): Promise<ScanResponse> {
   }
 
   try {
-    const apiUrl = `${API_URL}/api/scan?url=${encodeURIComponent(url)}`;
+    const apiUrl = new URL(`/api/scan?url=${encodeURIComponent(url)}`, API_URL);
 
     const res = await fetch(apiUrl, {
       method: "GET",

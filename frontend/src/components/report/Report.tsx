@@ -1,6 +1,6 @@
 import { Globe } from "lucide-react";
 import type { PageReport } from "@/types/report";
-import { ScannerSection } from "./ScannerSection";
+import { AuditSection } from "./AuditSection";
 
 export function Report({ data }: { data: PageReport }) {
   return (
@@ -16,7 +16,7 @@ export function Report({ data }: { data: PageReport }) {
 
       <div className="space-y-10">
         {data.results.map((result) => (
-          <ScannerSection key={result.auditor_name} result={result} />
+          <AuditSection key={result.auditor_name} result={result} />
         ))}
       </div>
     </div>

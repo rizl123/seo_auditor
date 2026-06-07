@@ -40,57 +40,54 @@ func (m *MockCacher) Store(ctx context.Context, group string, key string, obj an
 
 type MockAuditor struct{ mock.Mock }
 
-func (m *MockAuditor) AuditorName() string { return "test-auditor" }
-func (m *MockAuditor) Analyze(ctx context.Context, raw *domain.RawData) (*domain.AuditResult, error) {
-	args := m.Called(ctx, raw)
+func (m *MockAuditor) AuditorName() string   { return "test-auditor" }
+func (m *MockAuditor) I18nNamespace() string { return "auditors.test" }
+
+func (m *MockAuditor) Analyze(ctx context.Context, targetURL *url.URL) *domain.AuditResult {
+	args := m.Called(ctx, targetURL)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil
 	}
-	return args.Get(0).(*domain.AuditResult), args.Error(1)
+	return args.Get(0).(*domain.AuditResult)
 }
 
 func TestCachedAuditorProxy_Analyze_Logic(t *testing.T) {
 	ctx := context.Background()
 	targetURL, _ := url.Parse("https://example.com")
-
-	raw := &domain.RawData{URL: targetURL, Status: 200}
-	result := &domain.AuditResult{
-		AuditorName: "test-auditor",
-		IsCached:    false,
-		ScannedAt:   time.Now(),
-	}
-
 	cacheKey := "test-auditor:https://example.com"
 
 	t.Run("CacheHit", func(t *testing.T) {
 		mC, mA := new(MockCacher), new(MockAuditor)
-		auditor := infra.NewCachedAuditor(mA, mC, time.Hour, time.Minute)
+		auditor := infra.NewCachedAuditor(mA, mC, time.Hour)
+
+		result := domain.NewAuditResult(mA)
+		result.IsCached = false // Изначально false, прокси должен выставить в true
 
 		mC.On("Fetch", ctx, "auditor", cacheKey, mock.AnythingOfType("*domain.AuditResult")).
 			Return(nil, result)
 
-		res, err := auditor.Analyze(ctx, raw)
+		res := auditor.Analyze(ctx, targetURL)
 
-		assert.NoError(t, err)
 		assert.True(t, res.IsCached)
 		mA.AssertNotCalled(t, "Analyze", mock.Anything, mock.Anything)
 	})
 
 	t.Run("CacheMiss_StoreSuccess", func(t *testing.T) {
 		mC, mA := new(MockCacher), new(MockAuditor)
-		auditor := infra.NewCachedAuditor(mA, mC, time.Hour, time.Minute)
+		auditor := infra.NewCachedAuditor(mA, mC, time.Hour)
+
+		result := domain.NewAuditResult(mA)
 
 		mC.On("Fetch", ctx, "auditor", cacheKey, mock.Anything).Return(shared.ErrCacheMiss)
-		mA.On("Analyze", ctx, raw).Return(result, nil)
+		mA.On("Analyze", ctx, targetURL).Return(result)
 
 		storeCalled := make(chan struct{})
-		mC.On("Store", mock.Anything, "auditor", cacheKey, mock.AnythingOfType("domain.AuditResult"), time.Hour).
+		mC.On("Store", mock.Anything, "auditor", cacheKey, mock.AnythingOfType("*domain.AuditResult"), time.Hour).
 			Return(nil).
 			Run(func(args mock.Arguments) { close(storeCalled) })
 
-		res, err := auditor.Analyze(ctx, raw)
+		res := auditor.Analyze(ctx, targetURL)
 
-		assert.NoError(t, err)
 		assert.False(t, res.IsCached)
 
 		select {
@@ -99,5 +96,6 @@ func TestCachedAuditorProxy_Analyze_Logic(t *testing.T) {
 			t.Fatal("timeout waiting for Store call")
 		}
 		mC.AssertExpectations(t)
+		mA.AssertExpectations(t)
 	})
 }

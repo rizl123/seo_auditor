@@ -36,7 +36,8 @@ func (s *WebFetcher) Scan(ctx context.Context, url *neturl.URL) (*domain.RawData
 	}()
 
 	raw := &domain.RawData{
-		URL: url, Status: res.StatusCode, ScannedAt: time.Now(),
+		URL:    url,
+		Status: res.StatusCode,
 		Network: &domain.NetworkInfo{
 			ResponseTime: time.Since(start),
 			Server:       res.Header.Get("Server"),

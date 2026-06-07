@@ -17,13 +17,20 @@ export interface Problem {
   resources: Resource[];
 }
 
+export interface AuditFail {
+  title: string;
+  description: string;
+}
+
 export interface AuditResult {
   auditor_name: string;
   i18n_namespace: string;
-  details: DetailItem[];
+  details?: DetailItem[];
   problems: Problem[];
   is_cached: boolean;
-  scanned_at: string;
+  started_at: string;
+  finished_at: string;
+  fail: AuditFail | null;
 }
 
 export interface PageReport {

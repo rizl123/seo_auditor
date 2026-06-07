@@ -26,12 +26,14 @@
     "connectionFailed": "Не удалось подключиться к серверу сканирования. Пожалуйста, попробуйте позже."
   },
   "Report": {
+    "failed": "ПРОВАЛЕНO",
     "issues": "{count, plural, one {# ОШИБКА} few {# ОШИБКИ} many {# ОШИБОК} other {# ОШИБОК}}",
     "passed": "ПРОЙДЕНО",
     "howToFix": "Как исправить",
     "docs": "Документация",
     "noData": "н/д",
-    "scannedAt": "Проверено в {time, time, short}",
+    "startedAt": "Начало в {time, time, short}",
+    "finishedAt": "Проверено в {time, time, short}",
     "duration": "{value, number} мс"
   }
 }

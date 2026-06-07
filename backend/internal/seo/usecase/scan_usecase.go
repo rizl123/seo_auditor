@@ -3,22 +3,36 @@ package usecase
 import (
 	"backend/internal/seo/domain"
 	"context"
-	"fmt"
 	"net/url"
+	"sync"
 )
 
 type ScanUsecase struct {
-	runner domain.Runner
+	auditors []domain.Auditor
 }
 
-func NewScanUsecase(r domain.Runner) *ScanUsecase {
-	return &ScanUsecase{runner: r}
+func NewScanUsecase(a ...domain.Auditor) *ScanUsecase {
+	return &ScanUsecase{auditors: a}
 }
 
 func (u *ScanUsecase) Execute(ctx context.Context, url *url.URL) (*domain.PageReport, error) {
-	report, err := u.runner.Run(ctx, url)
-	if err != nil {
-		return nil, fmt.Errorf("usecase: scan execution failed: %w", err)
+	var wg sync.WaitGroup
+	results := make([]*domain.AuditResult, len(u.auditors))
+
+	for i, a := range u.auditors {
+		wg.Add(1)
+
+		go func(idx int, auditor domain.Auditor) {
+			defer wg.Done()
+
+			results[idx] = auditor.Analyze(ctx, url)
+		}(i, a)
 	}
-	return report, nil
+
+	wg.Wait()
+
+	return &domain.PageReport{
+		URL:     url,
+		Results: results,
+	}, nil
 }

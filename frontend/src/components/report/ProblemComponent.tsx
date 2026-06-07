@@ -2,7 +2,7 @@ import { AlertTriangle, ExternalLink, Lightbulb } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { Problem } from "@/types/report";
 
-export function ProblemItem({ problem }: { problem: Problem }) {
+export function ProblemComponent({ problem }: { problem: Problem }) {
   const t = useTranslations("Report");
   const a = useTranslations(`API.${problem.i18n_namespace}`);
 

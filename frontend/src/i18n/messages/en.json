@@ -26,12 +26,14 @@
     "connectionFailed": "Could not connect to the scanning server. Please try again later."
   },
   "Report": {
+    "failed": "FAILED",
     "issues": "{count, plural, =1 {1 ISSUE} other {# ISSUES}}",
     "passed": "PASSED",
     "howToFix": "How to fix",
     "docs": "Docs",
     "noData": "n/a",
-    "scannedAt": "Scanned at {time, time, short}",
+    "startedAt": "Started at {time, time, short}",
+    "finishedAt": "Finished at {time, time, short}",
     "duration": "{value, number} ms"
   }
 }

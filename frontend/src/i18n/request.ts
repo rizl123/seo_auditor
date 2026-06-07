@@ -6,16 +6,16 @@ import type { Locale } from "@/config/i18n";
 import { API_URL } from "@/config/urls";
 import { routing } from "@/i18n/routing";
 
-async function getFrontendMessages(locale: string) {
+const getFrontendMessages = async (locale: string) => {
   const module = await import(`./messages/${locale}.json`);
   return module.default as Record<string, unknown>;
-}
+};
 
 const getApiMessages = cache(async (locale: Locale) => {
-  const response = await fetch(`${API_URL}/api/locales/${locale}.json`, {
-    next: { revalidate: 1800, tags: [`locale-${locale}`] },
-    cache: "no-store",
-  });
+  const response = await fetch(
+    new URL(`/api/locales/${locale}.json`, API_URL),
+    { next: { revalidate: 1800 } },
+  );
 
   if (!response.ok) {
     return {};

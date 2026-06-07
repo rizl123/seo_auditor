@@ -4,127 +4,46 @@ import (
 	"backend/internal/seo/domain"
 	"backend/internal/shared"
 	"context"
-	"errors"
-	"fmt"
-	"log/slog"
-	neturl "net/url"
-	"sync"
+	"net/url"
 	"time"
 )
 
 type CachedAuditorProxy struct {
-	base               domain.Auditor
-	cacher             shared.Cacher
-	ttl                time.Duration
-	breakDuration      time.Duration
-	cacheDisabledUntil time.Time
-	mu                 sync.RWMutex
+	base   domain.Auditor
+	cacher shared.Cacher
+	ttl    time.Duration
 }
 
-func NewCachedAuditor(
-	base domain.Auditor,
-	cacher shared.Cacher,
-	ttl, breakDuration time.Duration,
-) *CachedAuditorProxy {
+func NewCachedAuditor(base domain.Auditor, cacher shared.Cacher, ttl time.Duration) *CachedAuditorProxy {
 	return &CachedAuditorProxy{
-		base:          base,
-		cacher:        cacher,
-		ttl:           ttl,
-		breakDuration: breakDuration,
+		base:   base,
+		cacher: cacher,
+		ttl:    ttl,
 	}
 }
 
-func (s *CachedAuditorProxy) AuditorName() string {
-	return s.base.AuditorName()
-}
+func (s *CachedAuditorProxy) AuditorName() string   { return s.base.AuditorName() }
+func (s *CachedAuditorProxy) I18nNamespace() string { return s.base.I18nNamespace() }
 
-func (s *CachedAuditorProxy) Analyze(ctx context.Context, raw *domain.RawData) (*domain.AuditResult, error) {
-	cacheAvailable := s.isCacheAvailable()
-	cacheKey := s.cacheKey(raw.URL)
+func (s *CachedAuditorProxy) Analyze(ctx context.Context, url *url.URL) *domain.AuditResult {
+	cacheKey := s.base.AuditorName() + ":" + url.String()
 
-	if cacheAvailable {
-		if result := s.fetch(ctx, cacheKey); result != nil {
-			return result, nil
-		}
-	}
-
-	result, err := s.base.Analyze(ctx, raw)
-	if err != nil {
-		return nil, fmt.Errorf("infra: auditor %q failed: %w", s.AuditorName(), err)
-	}
-
-	if cacheAvailable {
-		result.IsCached = false
-		go s.store(ctx, cacheKey, *result)
-	}
-
-	return result, nil
-}
-
-func (s *CachedAuditorProxy) cacheKey(u *neturl.URL) string {
-	return s.base.AuditorName() + ":" + u.String()
-}
-
-func (s *CachedAuditorProxy) fetch(ctx context.Context, key string) *domain.AuditResult {
-	var result domain.AuditResult
-	err := s.cacher.Fetch(ctx, "auditor", key, &result)
+	var cached domain.AuditResult
+	err := s.cacher.Fetch(ctx, "auditor", cacheKey, &cached)
 
 	if err == nil {
-		result.IsCached = true
-		return &result
+		cached.IsCached = true
+		return &cached
 	}
 
-	if !errors.Is(err, shared.ErrCacheMiss) {
-		// #nosec G706
-		slog.Warn("infra: disabling cache due to error",
-			"auditor", s.AuditorName(),
-			"error", err.Error(),
-		)
-		s.disableCache()
+	result := s.base.Analyze(ctx, url)
+	if result.Fail != nil {
+		return result
 	}
-
-	return nil
-}
-
-func (s *CachedAuditorProxy) store(ctx context.Context, key string, result domain.AuditResult) {
-	defer func() {
-		if r := recover(); r != nil {
-			// #nosec G706
-			slog.Error("infra: panic in store goroutine",
-				"recover", fmt.Sprintf("%v", r),
-				"auditor", s.AuditorName(),
-			)
-		}
-	}()
 
 	detachedCtx := context.WithoutCancel(ctx)
-	bgCtx, cancel := context.WithTimeout(detachedCtx, 3*time.Second)
-	defer cancel()
+	_ = s.cacher.Store(detachedCtx, "auditor", cacheKey, result, s.ttl)
 
-	err := s.cacher.Store(bgCtx, "auditor", key, result, s.ttl)
-	if err != nil {
-		// #nosec G706
-		slog.Warn("infra: failed to store in cache, tripping circuit breaker",
-			"auditor", s.AuditorName(),
-			"error", err.Error(),
-		)
-		s.disableCache()
-	}
-}
-
-func (s *CachedAuditorProxy) isCacheAvailable() bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return time.Now().After(s.cacheDisabledUntil)
-}
-
-func (s *CachedAuditorProxy) disableCache() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.cacheDisabledUntil = time.Now().Add(s.breakDuration)
-	// #nosec G706
-	slog.Info("infra: cache breaker active",
-		"auditor", s.AuditorName(),
-		"duration", s.breakDuration.Milliseconds(),
-	)
+	result.IsCached = false
+	return result
 }

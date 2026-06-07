@@ -16,7 +16,7 @@ export const options: oidc.DiscoveryRequestOptions &
 export async function getOidcConfig(): Promise<oidc.Configuration> {
   if (cachedConfig) return cachedConfig;
   const config = await oidc.discovery(
-    new URL(oidcConfig.ISSUER),
+    oidcConfig.ISSUER,
     oidcConfig.CLIENT_ID,
     oidcConfig.CLIENT_SECRET,
     undefined,
