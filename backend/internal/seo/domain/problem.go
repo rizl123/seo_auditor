@@ -40,6 +40,8 @@ func (p *Problem) AddInt64Var(key string, val int64) {
 }
 
 func (p *Problem) AddResource(title string, urlStr string) {
-	parsed, _ := url.Parse(urlStr)
-	p.Resources = append(p.Resources, NewRes(title, parsed))
+	parsed, err := url.Parse(urlStr)
+	if err == nil {
+		p.Resources = append(p.Resources, NewRes(title, parsed))
+	}
 }

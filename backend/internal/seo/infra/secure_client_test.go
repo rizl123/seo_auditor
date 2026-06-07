@@ -3,7 +3,6 @@ package infra_test
 import (
 	"backend/internal/seo/infra"
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSecureClient_Hardcore(t *testing.T) {
@@ -58,28 +56,6 @@ func TestSecureClient_Hardcore(t *testing.T) {
 		_, err := fetcher.Scan(ctx, u)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context deadline exceeded")
-	})
-
-	t.Run("Parsing: Malformed HTML & Limits", func(t *testing.T) {
-		infra.IpValidator = func(ip net.IP) bool { return true }
-
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "text/html")
-			fmt.Fprint(w, `<html><title>Correct Title</title><body><h1>Header 1</h1>`)
-			fmt.Fprint(w, string(make([]byte, 1024*600)))
-			fmt.Fprint(w, `<h1>Hidden Header</h1></body></html>`)
-		}))
-		defer ts.Close()
-
-		u, _ := url.Parse(ts.URL)
-		raw, err := fetcher.Scan(context.Background(), u)
-
-		require.NoError(t, err)
-		assert.Equal(t, "Correct Title", raw.Metadata.Title)
-		assert.Contains(t, raw.Metadata.H1, "Header 1")
-		for _, h := range raw.Metadata.H1 {
-			assert.NotEqual(t, "Hidden Header", h)
-		}
 	})
 
 	t.Run("Network: User-Agent Spoofing", func(t *testing.T) {

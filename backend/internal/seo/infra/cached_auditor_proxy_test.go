@@ -61,7 +61,7 @@ func TestCachedAuditorProxy_Analyze_Logic(t *testing.T) {
 		auditor := infra.NewCachedAuditor(mA, mC, time.Hour)
 
 		result := domain.NewAuditResult(mA)
-		result.IsCached = false // Изначально false, прокси должен выставить в true
+		result.IsCached = false
 
 		mC.On("Fetch", ctx, "auditor", cacheKey, mock.AnythingOfType("*domain.AuditResult")).
 			Return(nil, result)

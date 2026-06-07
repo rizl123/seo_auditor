@@ -52,13 +52,8 @@ func (s *MetaAuditor) Analyze(ctx context.Context, url *url.URL) *domain.AuditRe
 	s.checkTitle(result, meta.Title)
 	s.checkDescription(result, meta.Description)
 	s.checkHeadings(result, meta.H1)
-
-	if meta.Canonical == "" {
-		result.Problems = append(result.Problems, s.problemMissingCanonical())
-	}
-	if meta.OgImage == "" {
-		result.Problems = append(result.Problems, s.problemMissingOgImage())
-	}
+	s.checkCanonical(result, meta.Canonical)
+	s.checkOgImage(result, meta.OgImage)
 
 	result.FinishedAt = time.Now()
 	return result
@@ -134,19 +129,23 @@ func (s *MetaAuditor) checkHeadings(result *domain.AuditResult, h1s []string) {
 	}
 }
 
-func (s *MetaAuditor) problemMissingCanonical() domain.Problem {
-	problem := domain.NewProblem("auditors.meta.problems.missing_canonical")
-	problem.AddResource(
-		"Google: Canonical tag",
-		"https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
-	)
-	problem.AddResource("Moz: Canonical URL", "https://moz.com/learn/seo/canonicalization")
-	return problem
+func (s *MetaAuditor) checkCanonical(result *domain.AuditResult, canonical string) {
+	if canonical == "" {
+		problem := domain.NewProblem("auditors.meta.problems.missing_canonical")
+		problem.AddResource(
+			"Google: Canonical tag",
+			"https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
+		)
+		problem.AddResource("Moz: Canonical URL", "https://moz.com/learn/seo/canonicalization")
+		result.Problems = append(result.Problems, problem)
+	}
 }
 
-func (s *MetaAuditor) problemMissingOgImage() domain.Problem {
-	problem := domain.NewProblem("auditors.meta.problems.missing_og_image")
-	problem.AddResource("Open Graph protocol", "https://ogp.me/")
-	problem.AddResource("Opengraph.xyz preview tool", "https://www.opengraph.xyz/")
-	return problem
+func (s *MetaAuditor) checkOgImage(result *domain.AuditResult, ogImage string) {
+	if ogImage == "" {
+		problem := domain.NewProblem("auditors.meta.problems.missing_og_image")
+		problem.AddResource("Open Graph protocol", "https://ogp.me/")
+		problem.AddResource("Opengraph.xyz preview tool", "https://www.opengraph.xyz/")
+		result.Problems = append(result.Problems, problem)
+	}
 }

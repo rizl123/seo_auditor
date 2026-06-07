@@ -35,7 +35,6 @@ func (s *SingleflightFetcherProxy) Scan(
 
 	s.mu.Lock()
 
-	// если уже выполняется запрос — ждём его
 	if c, ok := s.calls[key]; ok {
 		s.mu.Unlock()
 
@@ -43,7 +42,6 @@ func (s *SingleflightFetcherProxy) Scan(
 		return c.data, c.err
 	}
 
-	// если ничего нет — создаём новый
 	c := &call{}
 	c.wg.Add(1)
 	s.calls[key] = c
