@@ -1,4 +1,4 @@
-import { MainClientContainer } from "@/components/MainClientContainer";
+import { MainClientContainer } from "./MainClientContainer";
 
 export default async function Home() {
   return (

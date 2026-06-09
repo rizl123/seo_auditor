@@ -28,7 +28,7 @@
         },
         "missing_title": {
           "name": "Missing title tag",
-          "description": "The page has no <title> tag. Search engines use the title as the primary clickable headline in SERPs.",
+          "description": "The page has no '<title>' tag. Search engines use the title as the primary clickable headline in SERPs.",
           "solutions": [
             "Add a descriptive <title> tag",
             "Keep it between 50–60 characters"
@@ -59,7 +59,7 @@
         },
         "missing_h1": {
           "name": "Missing H1 heading",
-          "description": "The page has no <h1> tag. H1 is a strong relevance signal.",
+          "description": "The page has no '<h1>' tag. H1 is a strong relevance signal.",
           "solutions": ["Add exactly one <h1> that matches the topic"]
         },
         "multiple_h1": {

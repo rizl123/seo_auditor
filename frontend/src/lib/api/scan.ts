@@ -1,5 +1,3 @@
-"use server";
-
 import { API_URL } from "@/config/urls";
 import type { ApiErrorItem, ApiErrorResponse } from "@/types/api";
 import type { PageReport } from "@/types/report";

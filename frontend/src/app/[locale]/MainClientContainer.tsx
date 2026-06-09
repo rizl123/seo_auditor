@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Report } from "@/components/report/Report";
 import { SearchForm } from "@/components/SearchForm";
-import { type ScanResponse, scanURL } from "./actions";
+import { type ScanResponse, scanURL } from "@/lib/api/scan";
 
 export function MainClientContainer() {
   const [response, setResponse] = useState<ScanResponse | null>(null);

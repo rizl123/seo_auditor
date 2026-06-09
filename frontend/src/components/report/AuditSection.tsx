@@ -37,12 +37,12 @@ export function AuditSection({ result }: AuditSectionProps) {
           </div>
           <p className="text-xs text-zinc-500 max-w-xl">{r("description")}</p>
         </div>
-        <div className="hidden sm:flex flex-col items-end rounded-xl border border-border-custom bg-card px-3 py-2 text-xs">
-          <span className="text-muted-foreground">
+        <div className="hidden sm:flex flex-col items-end rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-xs">
+          <span className="text-zinc-500 dark:text-zinc-400">
             {t("startedAt", { time: new Date(result.started_at) })}
           </span>
 
-          <span className="text-muted-foreground">
+          <span className="text-zinc-500 dark:text-zinc-400">
             {t("finishedAt", { time: new Date(result.finished_at) })}
           </span>
         </div>

@@ -8,7 +8,10 @@ export function Report({ data }: { data: PageReport }) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xl font-bold break-all text-zinc-900 dark:text-white">
-            <Globe size={20} className="text-accent shrink-0" />
+            <Globe
+              size={20}
+              className="text-blue-600 dark:text-blue-400 shrink-0"
+            />
             {data.url}
           </div>
         </div>

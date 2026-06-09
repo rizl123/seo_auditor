@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown, Languages } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useLocale } from "next-intl";
+import { useState } from "react";
 import { type Locale, locales } from "@/config/i18n";
 import { usePathname, useRouter } from "@/i18n/navigation";
 
@@ -9,37 +10,40 @@ export function LocaleSwitcher() {
   const currentLocale = useLocale() as Locale;
   const router = useRouter();
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
-  const handleLocaleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const nextLocale = e.target.value as Locale;
-    router.replace(pathname, { locale: nextLocale });
+  const current = locales.find((l) => l.short === currentLocale);
+
+  const changeLocale = (locale: Locale) => {
+    setOpen(false);
+    router.replace(pathname, { locale });
   };
 
   return (
-    <div className="relative group">
-      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-accent group-hover:scale-110 transition-transform">
-        <Languages size={15} />
-      </div>
-
-      <select
-        value={currentLocale}
-        onChange={handleLocaleChange}
-        className="appearance-none bg-accent/5 border border-border-custom hover:border-accent/40 text-foreground text-xs font-bold pl-9 pr-8 py-2 rounded-xl transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/20"
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 px-2 sm:px-3 py-2 rounded-lg sm:rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs font-bold text-zinc-700 dark:text-zinc-300 active:scale-95 transition"
       >
-        {locales.map(({ short, full }) => (
-          <option
-            key={short}
-            value={short}
-            className="bg-background text-foreground"
-          >
-            {full}
-          </option>
-        ))}
-      </select>
-
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-foreground/40">
+        <span>{current?.short.toUpperCase()}</span>
         <ChevronDown size={14} />
-      </div>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 min-w-max rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden z-50">
+          {locales.map((l) => (
+            <button
+              key={l.short}
+              type="button"
+              onClick={() => changeLocale(l.short as Locale)}
+              className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+            >
+              {l.short.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

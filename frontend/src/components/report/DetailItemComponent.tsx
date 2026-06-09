@@ -11,7 +11,11 @@ export function DetailItemComponent({ item }: DetailItemProps) {
 
   const renderValue = () => {
     if (item.value === null || item.value === undefined || item.value === "") {
-      return <span className="text-zinc-300 italic">{t("noData")}</span>;
+      return (
+        <span className="text-zinc-300 dark:text-zinc-700 italic">
+          {t("noData")}
+        </span>
+      );
     }
 
     switch (item.type) {
@@ -27,7 +31,7 @@ export function DetailItemComponent({ item }: DetailItemProps) {
             href={item.value}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-accent hover:underline truncate block"
+            className="text-blue-600 dark:text-blue-400 hover:underline truncate block"
           >
             {item.value}
           </a>

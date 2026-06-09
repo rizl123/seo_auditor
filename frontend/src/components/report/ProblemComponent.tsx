@@ -36,7 +36,7 @@ export function ProblemComponent({ problem }: { problem: Problem }) {
                       key={s}
                       className="text-xs text-zinc-600 dark:text-zinc-400 flex items-start gap-2"
                     >
-                      <span className="w-1 h-1 rounded-full bg-accent mt-1.5 shrink-0" />
+                      <span className="w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-400 mt-1.5 shrink-0" />
                       {s}
                     </li>
                   ))}
@@ -55,7 +55,7 @@ export function ProblemComponent({ problem }: { problem: Problem }) {
                       href={res.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-accent hover:text-white rounded-lg text-xs font-medium transition-all"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-blue-600 dark:hover:bg-blue-500 hover:text-white rounded-lg text-xs font-medium transition-all"
                     >
                       {res.title}
                       <ExternalLink size={10} className="opacity-50" />

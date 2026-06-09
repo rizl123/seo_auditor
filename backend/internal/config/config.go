@@ -3,11 +3,12 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strconv"
 	"time"
 )
 
 type Config struct {
-	AppPort            string
+	AppPort            int
 	RedisAddr          string
 	AllowedOrigins     []string
 	CacheTTL           time.Duration
@@ -15,8 +16,13 @@ type Config struct {
 }
 
 func Load() *Config {
+	port, err := strconv.Atoi(getEnv("APP_PORT", "8080"))
+	if err != nil {
+		port = 8080
+		slog.Warn("Cannot convert APP_PORT to int, using 8080")
+	}
 	return &Config{
-		AppPort:            getEnv("APP_PORT", "8080"),
+		AppPort:            port,
 		RedisAddr:          os.Getenv("REDIS_ADDR"),
 		AllowedOrigins:     getSliceEnv("ALLOWED_ORIGINS", "*"),
 		CacheTTL:           getDurationEnv("CACHE_TTL", 1*time.Hour),
@@ -27,7 +33,7 @@ func Load() *Config {
 func (cfg *Config) Log() {
 	slog.Info("Application configuration loaded",
 		slog.Group("config",
-			slog.String("port", cfg.AppPort),
+			slog.Int("port", cfg.AppPort),
 			slog.String("redis", cfg.RedisAddr),
 			slog.Any("origins", cfg.AllowedOrigins),
 			slog.Duration("cache_ttl", cfg.CacheTTL),

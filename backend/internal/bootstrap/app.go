@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -31,7 +32,7 @@ func NewApp(cfg *config.Config) *App {
 
 func (a *App) Run() {
 	srv := &http.Server{
-		Addr:         ":" + a.config.AppPort,
+		Addr:         ":" + strconv.Itoa(a.config.AppPort),
 		Handler:      a.handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 20 * time.Second,
@@ -41,18 +42,23 @@ func (a *App) Run() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	close, err := (func() (func() error, error) {
-		if a.cacher != nil {
-			return a.cacher.Connect(ctx)
+	var close func() error
+	var err error
+
+	if a.cacher != nil {
+		close, err = a.cacher.Connect(ctx)
+		if err != nil {
+			a.cacher = nil
+			slog.Error("bootstrap: redis ping failed, running without cache", "error", err)
 		}
-		return nil, nil
-	})()
-	if close == nil || err != nil {
-		slog.Error("bootstrap: redis ping failed, running without cache", "error", err)
 	}
+
 	defer func() {
-		err := close()
-		slog.Error("Error closing cacher", "error", err)
+		if close != nil {
+			if err := close(); err != nil {
+				slog.Error("Error closing cacher", "error", err)
+			}
+		}
 	}()
 
 	go func() {

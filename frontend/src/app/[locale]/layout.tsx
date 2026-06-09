@@ -25,7 +25,7 @@ export default async function LocaleLayout(props: LocaleLayoutProps) {
 
   return (
     <html lang={locale} className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-gray-50 text-gray-900 tracking-tight dark:bg-gray-950 dark:text-gray-100">
         <NextIntlClientProvider messages={messages}>
           <Navbar />
           {props.children}
