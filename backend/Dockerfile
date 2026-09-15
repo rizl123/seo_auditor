@@ -1,5 +1,4 @@
 FROM golang:1.26.1-alpine AS builder
-RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /app
 
@@ -17,7 +16,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     go build -o backend internal/cmd/main.go
 
 FROM alpine:3.21
-RUN apk add --no-cache ca-certificates lsof
+RUN --mount=type=cache,target=/var/cache/apk apk add ca-certificates lsof
 WORKDIR /app
 
 COPY --from=builder /app/backend .

@@ -1,0 +1,4 @@
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+fetchTimeout: 3600000
