@@ -2,3 +2,5 @@ allowBuilds:
   '@parcel/watcher': true
   '@swc/core': true
 fetchTimeout: 3600000
+overrides:
+  source-map-js: 1.2.2
