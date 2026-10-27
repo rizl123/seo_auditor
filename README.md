@@ -8,7 +8,7 @@ A high-performance, containerized solution for instant website SEO auditing. Thi
 
 The project follows a modular microservices approach with a focus on **Clean Architecture**, **Security**, and **Resilience**.
 
-- **Frontend**: Next.js 15 (App Router) using **Server Actions** for secure API communication, **Tailwind CSS 4**, and **next-intl** for full i18n support.
+- **Frontend**: Next.js 16 (App Router), **Tailwind CSS 4**, and **next-intl** for localized routing and UI. The client calls the Go API for SEO scans; the frontend also handles the Logto OIDC login flow.
 - **Backend**: Go 1.26 using [Huma v2](https://huma.rocks/) for RFC 7807-compliant error handling and OpenAPI 3.0 specs.
 - **Authentication**: Integrated **Logto (OIDC)** with a dedicated PostgreSQL database.
 - **Audit Engine**: A pluggable **Auditor** system that runs Meta and Performance scans in parallel.
@@ -24,7 +24,7 @@ The project follows a modular microservices approach with a focus on **Clean Arc
 ├── backend/internal    # Go Clean Architecture service
 │   ├── seo             # Domain, UseCases, Infra (Auditors, Fetchers), Delivery
 │   └── shared/         # Resilient Caching and Redis logic
-├── frontend/src        # Next.js 15 Application
+├── frontend/src        # Next.js 16 application
 │   ├── app             # Localized routing and Auth handlers
 │   │   └── [locale]    # Dynamic segment for i18n
 │   ├── components      # Modular UI
@@ -65,7 +65,7 @@ docker compose --profile back_dev up
 
 ### 2. Frontend Development (`front_dev`)
 
-Features **Next.js HMR**.
+Features **Next.js HMR**. The frontend uses pnpm; run its commands from `frontend` with `pnpm`.
 
 ```bash
 docker compose --profile front_dev up
@@ -138,7 +138,7 @@ cd backend && go test -v -race ./internal/...
 Uses **Biome** for lightning-fast linting and formatting.
 
 ```bash
-cd frontend && npm run lint:check && npm run format:check
+cd frontend && pnpm run lint:check && pnpm run format:check
 ```
 
 ### CI/CD
