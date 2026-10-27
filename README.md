@@ -1,19 +1,85 @@
 # SEO Scanner Fullstack Monorepo
 
-A high-performance, containerized solution for instant website SEO auditing. This monorepo features a resilient **Go** backend and a modern **Next.js** frontend, orchestrated with **Docker** and secured via **Logto OIDC** and **Nginx**.
+A containerized application for website SEO auditing. This monorepo combines a **Go** API and a **Next.js** frontend, orchestrated with **Docker Compose**, with **Logto OIDC** login and **Nginx** routing.
 
 ---
 
-## System Architecture
+## Architecture
 
-The project follows a modular microservices approach with a focus on **Clean Architecture**, **Security**, and **Resilience**.
+The repository is a Docker Compose monorepo with a Next.js web app, a Go API, and supporting infrastructure. The SEO scan is stateless: PostgreSQL stores Logto authentication data, while Redis stores temporary scan and fetch results.
 
-- **Frontend**: Next.js 16 (App Router), **Tailwind CSS 4**, and **next-intl** for localized routing and UI. The client calls the Go API for SEO scans; the frontend also handles the Logto OIDC login flow.
-- **Backend**: Go 1.26 using [Huma v2](https://huma.rocks/) for RFC 7807-compliant error handling and OpenAPI 3.0 specs.
-- **Authentication**: Integrated **Logto (OIDC)** with a dedicated PostgreSQL database.
-- **Audit Engine**: A pluggable **Auditor** system that runs Meta and Performance scans in parallel.
-- **Caching**: Redis with a custom **Circuit Breaker** to ensure 100% uptime even if the cache layer fails.
-- **Proxy**: Nginx optimized with large buffers to handle OIDC session cookies and unified routing.
+```mermaid
+flowchart LR
+    Browser -->|site host / localized pages| Nginx
+    Nginx --> Frontend[Next.js]
+    Nginx -->|/api/*| Backend[Go API]
+    Nginx -->|/swagger/*| Swagger[Swagger UI]
+    Browser <-->|OIDC redirects| Logto
+    Nginx -->|auth and admin hosts| Logto
+    Logto --> PostgreSQL
+    Logto --> Redis
+    Backend -->|cache reads and writes| Redis
+    Backend -->|HTTP(S) fetch| Target[Public website]
+```
+
+### Request and scan flow
+
+1. The browser opens the localized Next.js app. `next-intl` middleware selects a locale and routes pages under `/en` or `/ru`.
+2. The scan form calls `GET /api/scan?url=...`. Nginx routes `/api/*` to the Go service.
+3. The Huma handler validates the URL shape and converts internationalized domain names to ASCII. It invokes the scan use case and maps the domain report to a JSON DTO.
+4. The use case starts the registered auditors concurrently: `meta` and `performance`.
+5. Each auditor requests page data through the shared fetcher. The fetcher cache can return a previous response; otherwise singleflight coalesces concurrent requests for the same URL before the HTTP fetcher makes an outbound request.
+6. The auditors turn the fetched data into details, problems, and reference links. Their results are cached independently and returned together in the page report.
+7. The frontend renders the report and translates its i18n keys using the selected locale.
+
+### Go backend
+
+The backend follows ports-and-adapters / clean-architecture boundaries under `backend/internal/seo`:
+
+| Package | Responsibility |
+| --- | --- |
+| `domain` | Core contracts (`Auditor`, `Fetcher`), raw page/network data, reports, typed details, problems, and resource links. It does not depend on HTTP, Redis, or Huma. |
+| `usecase` | Runs all configured auditors concurrently and assembles a `PageReport`. |
+| `delivery` | Registers `GET /api/scan`, validates and normalizes the URL (including IDN hostnames), translates domain reports to API DTOs, and exposes Huma/OpenAPI endpoints. |
+| `infra` | Implements outbound HTTP fetching, HTML parsing, SSRF-aware dialing, singleflight request coalescing, and cache decorators. |
+| `shared` | Defines the cache interface and Redis implementation shared by the application. |
+| `bootstrap`, `config`, `cmd` | Load environment configuration, wire implementations and auditors, start the HTTP server, and shut it down on SIGINT/SIGTERM. |
+
+`WebFetcher` performs an HTTP GET with a 15-second client timeout and records status, response-header latency, server header, and content type. For HTTP 200 responses it parses the first title, description, Open Graph image, canonical URL, and H1 headings from up to 2 MiB of HTML. The current parser uses goquery; it is not a streaming tokenizer.
+
+The `meta` auditor reports title and description lengths, H1 count, canonical URL, and Open Graph image. The `performance` auditor reports response time, status, server, and content type, with warnings for slow responses, non-200 status, or non-HTML content. Audit rules are implemented in `backend/internal/seo/domain/auditors` and are registered in bootstrap, so additional auditors can be added behind the domain interface.
+
+### Fetching, safety, and cache behavior
+
+- The outbound HTTP client resolves the target host during dialing and rejects the selected IP when it is private, loopback, or link-local. The same client handles redirects, so each redirected destination is dialed through this validation path.
+- The fetcher cache uses the URL as its key. The auditor cache uses auditor name plus URL, allowing metadata and performance results to expire independently. Both use `CACHE_TTL`.
+- Singleflight coalesces simultaneous fetches for one URL in-process. It is not a distributed lock; Redis provides shared cached values across backend instances.
+- If Redis cannot be connected at startup, the backend logs the error and starts without caching. Cache read errors also fall back to running the underlying scan. Cache write errors are ignored by the audit path.
+- `CACHE_BREAK_DURATION` is currently read and logged by configuration but is not used by the cache implementation. There is no circuit-breaker state machine at present.
+
+### Frontend and authentication
+
+The frontend is a Next.js 16 App Router application. Server-rendered localized layout and UI components live under `frontend/src/app/[locale]`; the scan form and report interactions are client components. `next-intl` provides English and Russian UI dictionaries, while `frontend/src/lib/api/scan.ts` calls the API directly using `API_URL`.
+
+Logto provides OIDC login. The Next.js `/login`, `/callback`, and `/logout` route handlers implement the authorization-code flow with PKCE and state validation. The PKCE verifier and state are kept in short-lived HTTP-only cookies; after callback, the ID token is stored in an HTTP-only session cookie and verified against Logto JWKS when session information is read. The current scan API handler does not enforce authentication; the session is used for the navigation sign-in state.
+
+The Go service also embeds English and Russian auditor messages and serves them under `/api/locales/`. API responses contain translation keys and variables, typed detail values, cache status, timestamps, and links to reference material rather than pre-rendered localized text.
+
+### Runtime topology
+
+`docker-compose.yml` defines the runtime services:
+
+| Service | Role |
+| --- | --- |
+| `nginx` | Entry point on ports 80/443; routes the site, `/api`, Swagger, and Logto hostnames. |
+| `frontend` / `frontend_dev` | Production or hot-reloading Next.js app. Frontend dependencies are installed with pnpm. |
+| `backend` / `backend_dev` | Production or live-reloading Go API. |
+| `swagger` | Swagger UI backed by the API's generated OpenAPI document. |
+| `auth` | Logto OIDC provider and admin console. |
+| `db` | PostgreSQL database initialized for Logto. The SEO API does not persist reports in PostgreSQL. |
+| `redis` | Shared cache for Logto and SEO fetch/auditor results. |
+
+Compose profiles select production or development variants. `prod` starts production frontend/backend; `front_dev` runs the frontend in development with the production backend; `back_dev` runs the backend in development with the production frontend. The dev profiles provide source mounts and live reload. Nginx routes by host and path so the browser uses a single site entry point for the frontend, API, and Swagger UI, with separate auth/admin hosts for Logto.
 
 ---
 
@@ -21,17 +87,21 @@ The project follows a modular microservices approach with a focus on **Clean Arc
 
 ```text
 .
-├── backend/internal    # Go Clean Architecture service
-│   ├── seo             # Domain, UseCases, Infra (Auditors, Fetchers), Delivery
-│   └── shared/         # Resilient Caching and Redis logic
-├── frontend/src        # Next.js 16 application
-│   ├── app             # Localized routing and Auth handlers
-│   │   └── [locale]    # Dynamic segment for i18n
-│   ├── components      # Modular UI
-│   ├── i18n            # Dictionaries and i18n configuration
-│   └── lib             # OIDC, JWT and Session logic
+├── backend/internal
+│   ├── bootstrap       # Dependency wiring and HTTP server lifecycle
+│   ├── config          # Environment configuration
+│   ├── seo             # Domain, use case, delivery, auditors, and fetch/cache adapters
+│   ├── shared          # Cache interface and Redis implementation
+│   └── static          # Embedded backend locale dictionaries
+├── frontend
+│   ├── src/app         # Next.js 16 localized pages and Auth handlers
+│   ├── src/components  # UI components
+│   ├── src/i18n        # Dictionaries and i18n configuration
+│   ├── src/lib         # API, OIDC, JWT and session logic
+│   └── pnpm-*          # pnpm workspace configuration and lockfile
 ├── db                  # Postgres initialization scripts for Logto
 ├── nginx               # Reverse Proxy Config
+├── docker-compose.yml  # Service topology and development profiles
 └── .github/workflows   # CI/CD (Go race detector, Biome linting, Docker builds)
 ```
 
@@ -93,7 +163,7 @@ The application uses several environment variables for configuration. Below is a
 | `APP_PORT` | Internal Backend Port | `8080` |
 | `ALLOWED_ORIGINS` | CORS whitelist (comma-separated) | `*` |
 | `CACHE_TTL` | Duration to keep reports in cache | `1h` |
-| `CACHE_BREAK_DURATION` | Cooldown period between cache refreshes | `1m` |
+| `CACHE_BREAK_DURATION` | Parsed and logged, but not currently used by the cache implementation | `1m` |
 
 #### 3. Frontend & OIDC (`.env.frontend.local`)
 | Variable | Description | Default |
@@ -110,14 +180,13 @@ The application uses several environment variables for configuration. Below is a
 
 ---
 
-## 🔒 Security & Resilience
+## Security and resilience
 
-- **OIDC Authentication**: Secure session management via Logto; frontend implements JWT verification using `jose` and `openid-client`.
-- **Internationalization**: Localized routing with middleware-based locale detection and `[locale]` path prefixing.
-- **SSRF Protection**: The Go `Fetcher` utilizes a custom `http.Client` with pre-dial DNS resolution to block **RFC 1918** private ranges and loopback addresses.
-- **Streaming Parser**: Uses a native `html.Tokenizer` to reduce memory footprint and prevent DoS via massive HTML payloads (512KB limit).
-- **Circuit Breaker**: If Redis is unreachable, the `CachedAuditor` enters an "Open" state, bypassing the cache to maintain API availability.
-- **Graceful Shutdown**: The backend captures `SIGTERM/SIGINT` to close Redis connections and finish active requests.
+- OIDC uses authorization-code flow with PKCE and state validation; session and temporary auth cookies are HTTP-only. The Next.js app verifies ID tokens with Logto's JWKS.
+- The API fetcher validates the resolved IP at dial time and rejects private, loopback, and link-local addresses to reduce SSRF risk.
+- HTML parsing reads at most 2 MiB. HTTP requests have a 15-second client timeout, and the API applies read, write, and idle server timeouts.
+- Redis is an optional acceleration layer: backend startup continues without it if the initial connection fails, and cache errors fall back to the underlying scan path. The implementation does not currently use a circuit breaker.
+- The backend handles SIGINT/SIGTERM, shuts down the HTTP server with a timeout, and closes its Redis connection.
 
 ---
 
